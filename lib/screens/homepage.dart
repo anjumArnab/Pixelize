@@ -1,9 +1,13 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
+import 'package:get_storage/get_storage.dart';
 import '../widgets/img_button.dart';
 
 class Homepage extends StatefulWidget {
@@ -19,6 +23,89 @@ class _HomepageState extends State<Homepage> {
   final ImagePicker _picker = ImagePicker();
   double? _imageAspectRatio;
   Map<String, dynamic>? _imageMetadata;
+  final GetStorage _storage = GetStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedImage();
+  }
+
+  Future<void> _loadSavedImage() async {
+    try {
+      // Load saved image data
+      final savedImageData = _storage.read('saved_image');
+      final savedMetadata = _storage.read('image_metadata');
+
+      if (savedImageData != null) {
+        if (kIsWeb) {
+          // For web, image is stored as base64 string
+          final bytes = base64Decode(savedImageData);
+          final imageProvider = MemoryImage(bytes);
+          await _getImageDimensions(imageProvider);
+
+          setState(() {
+            _webImage = bytes;
+            _imageMetadata = savedMetadata != null
+                ? Map<String, dynamic>.from(savedMetadata)
+                : null;
+          });
+        } else {
+          // For mobile, check if file still exists at saved path
+          final file = File(savedImageData);
+          if (await file.exists()) {
+            final imageProvider = FileImage(file);
+            await _getImageDimensions(imageProvider);
+
+            setState(() {
+              _selectedImage = file;
+              _imageMetadata = savedMetadata != null
+                  ? Map<String, dynamic>.from(savedMetadata)
+                  : null;
+            });
+          } else {
+            // File no longer exists, clear saved data
+            _clearSavedData();
+          }
+        }
+      }
+    } catch (e) {
+      // print('Error loading saved image: $e');
+      _clearSavedData();
+    }
+  }
+
+  Future<void> _saveImageData() async {
+    try {
+      if (kIsWeb && _webImage != null) {
+        // For web, save image as base64 string
+        final base64String = base64Encode(_webImage!);
+        await _storage.write('saved_image', base64String);
+      } else if (_selectedImage != null) {
+        // For mobile, save file path
+        await _storage.write('saved_image', _selectedImage!.path);
+      }
+
+      // Save metadata
+      if (_imageMetadata != null) {
+        await _storage.write('image_metadata', _imageMetadata);
+      }
+
+      _showSnackBar('Image saved successfully!');
+    } catch (e) {
+      // print('Error saving image: $e');
+      _showSnackBar('Error saving image: $e');
+    }
+  }
+
+  Future<void> _clearSavedData() async {
+    try {
+      await _storage.remove('saved_image');
+      await _storage.remove('image_metadata');
+    } catch (e) {
+      // print('Error clearing saved data: $e');
+    }
+  }
 
   Future<void> _pickImageFromGallery() async {
     try {
@@ -97,11 +184,12 @@ class _HomepageState extends State<Homepage> {
             'path': kIsWeb ? 'Web Upload' : image.path,
             'megapixels': ((decodedImage.width * decodedImage.height) / 1000000)
                 .toStringAsFixed(1),
+            'savedAt': DateTime.now().toIso8601String(),
           };
         });
       }
     } catch (e) {
-      print('Error extracting image metadata: $e');
+      // print('Error extracting image metadata: $e');
     }
   }
 
@@ -171,6 +259,10 @@ class _HomepageState extends State<Homepage> {
       _imageAspectRatio = null;
       _imageMetadata = null;
     });
+
+    // Clear saved data when image is removed
+    _clearSavedData();
+    _showSnackBar('Image removed and cleared from storage');
   }
 
   void _showImageMetadataDialog() {
@@ -183,7 +275,7 @@ class _HomepageState extends State<Homepage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Row(
+          title: const Row(
             children: [
               Icon(Icons.info, color: Colors.blue),
               SizedBox(width: 8),
@@ -210,13 +302,19 @@ class _HomepageState extends State<Homepage> {
                 _buildMetadataRow('Has Transparency',
                     _imageMetadata!['hasAlpha'] ? 'Yes' : 'No'),
                 if (!kIsWeb) _buildMetadataRow('Path', _imageMetadata!['path']),
+                if (_imageMetadata!['savedAt'] != null)
+                  _buildMetadataRow(
+                      'Saved At',
+                      DateTime.parse(_imageMetadata!['savedAt'])
+                          .toString()
+                          .split('.')[0]),
               ],
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: Text('Close'),
+              child: const Text('Close'),
             ),
           ],
         );
@@ -234,7 +332,7 @@ class _HomepageState extends State<Homepage> {
             width: 100,
             child: Text(
               '$label:',
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
@@ -318,6 +416,31 @@ class _HomepageState extends State<Homepage> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    // Save button
+                                    GestureDetector(
+                                      onTap: _saveImageData,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.8),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.black.withOpacity(0.2),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.save,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
                                     // Info button
                                     GestureDetector(
                                       onTap: _showImageMetadataDialog,
