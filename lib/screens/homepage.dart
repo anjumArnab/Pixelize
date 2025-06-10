@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
-import 'dart:io';
+import '../widgets/img_button.dart';
 
 class Homepage extends StatefulWidget {
   const Homepage({super.key});
@@ -403,46 +404,20 @@ class _HomepageState extends State<Homepage> {
               Row(
                 children: [
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: ImageButton(
                       onPressed: _pickImageFromGallery,
-                      icon: const Icon(Icons.photo_library, size: 20),
-                      label: const Text(
-                        'Gallery',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
+                      icon: Icons.photo_library,
+                      label: 'Gallery',
+                      backgroundColor: Colors.green,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: ElevatedButton.icon(
+                    child: ImageButton(
                       onPressed: _pickImageFromCamera,
-                      icon: const Icon(Icons.camera_alt, size: 20),
-                      label: const Text(
-                        'Camera',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
+                      icon: Icons.camera_alt,
+                      label: 'Camera',
+                      backgroundColor: Colors.orange,
                     ),
                   ),
                 ],
