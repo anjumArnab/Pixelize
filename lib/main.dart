@@ -6,7 +6,6 @@ void main() {
   runApp(const Pixelize());
 }
 
-// Main App
 class Pixelize extends StatelessWidget {
   const Pixelize({super.key});
 
