@@ -1,9 +1,12 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../widgets/img_preview_widget.dart';
 
 class CompressImageScreen extends StatefulWidget {
   final File? imageFile;
@@ -28,6 +31,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   bool _isInitializing = true;
   bool _isCompressing = false;
   String? _errorMessage;
+  double? _imageAspectRatio;
 
   // Compression settings
   double _quality = 70.0;
@@ -43,22 +47,31 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   Future<void> _initializeImage() async {
     try {
       if (kIsWeb) {
+        // Web handling
         if (widget.webImageBytes != null) {
           _imageBytes = widget.webImageBytes;
           _originalSize = widget.webImageBytes!.length;
+          await _calculateAspectRatio();
         } else {
           _errorMessage = 'No image provided';
+          return;
         }
-      } else if (widget.imageFile != null) {
-        _imageFile = widget.imageFile;
-        _imageBytes = await widget.imageFile!.readAsBytes();
-        _originalSize = _imageBytes!.length;
-      } else if (widget.webImageBytes != null) {
-        await _createTempFileFromBytes();
-        _imageBytes = widget.webImageBytes;
-        _originalSize = widget.webImageBytes!.length;
       } else {
-        _errorMessage = 'No image provided';
+        // Mobile handling - simplified logic
+        if (widget.imageFile != null) {
+          _imageFile = widget.imageFile;
+          _imageBytes = await widget.imageFile!.readAsBytes();
+          _originalSize = _imageBytes!.length;
+          await _calculateAspectRatio();
+        } else if (widget.webImageBytes != null) {
+          // This case shouldn't happen on mobile, but handle it anyway
+          _imageBytes = widget.webImageBytes;
+          _originalSize = widget.webImageBytes!.length;
+          await _calculateAspectRatio();
+        } else {
+          _errorMessage = 'No image provided';
+          return;
+        }
       }
 
       // Auto-compress on initialization
@@ -77,28 +90,16 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
     }
   }
 
-  Future<void> _createTempFileFromBytes() async {
-    try {
-      if (widget.webImageBytes == null) {
-        throw Exception('No image bytes provided');
+  Future<void> _calculateAspectRatio() async {
+    if (_imageBytes != null) {
+      try {
+        // Decode image to get dimensions
+        final image = await decodeImageFromList(_imageBytes!);
+        _imageAspectRatio = image.width / image.height;
+      } catch (e) {
+        debugPrint('Error calculating aspect ratio: $e');
+        _imageAspectRatio = 1.0; // Default to square
       }
-
-      final tempDir = await getTemporaryDirectory();
-      final fileName = widget.imageName.contains('.')
-          ? widget.imageName
-          : '${widget.imageName}.jpg';
-      final tempFile = File(path.join(tempDir.path, 'temp_$fileName'));
-
-      await tempFile.writeAsBytes(widget.webImageBytes!);
-
-      if (await tempFile.exists()) {
-        _imageFile = tempFile;
-      } else {
-        throw Exception('Failed to create temporary file');
-      }
-    } catch (e) {
-      debugPrint('Error creating temp file: $e');
-      throw e;
     }
   }
 
@@ -120,7 +121,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
           format: CompressFormat.jpeg,
         );
       } else {
-        // For mobile platforms
+        //  Mobile compression - better handling
         if (_imageFile != null) {
           final targetPath = path.join(
             (await getTemporaryDirectory()).path,
@@ -137,6 +138,13 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
           if (compressedFile != null) {
             result = await compressedFile.readAsBytes();
           }
+        } else {
+          // Fallback: use compressWithList for mobile if no file available
+          result = await FlutterImageCompress.compressWithList(
+            _imageBytes!,
+            quality: _quality.round(),
+            format: CompressFormat.jpeg,
+          );
         }
       }
 
@@ -197,6 +205,18 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  double _calculateImageHeight(double containerWidth) {
+    if (_imageAspectRatio == null) return 200;
+
+    // Calculate height based on aspect ratio
+    double calculatedHeight = containerWidth / _imageAspectRatio!;
+
+    // Set constraints: minimum 150px, maximum 300px
+    calculatedHeight = calculatedHeight.clamp(150.0, 300.0);
+
+    return calculatedHeight;
   }
 
   @override
@@ -277,38 +297,14 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Image Preview
-                      Container(
-                        width: double.infinity,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFB3B3),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: _compressedBytes != null
-                              ? Image.memory(
-                                  _compressedBytes!,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                )
-                              : _imageBytes != null
-                                  ? Image.memory(
-                                      _imageBytes!,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                    )
-                                  : const Center(
-                                      child: Icon(
-                                        Icons.image,
-                                        size: 64,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                        ),
+                      // Image Preview Section
+                      ImagePreviewWidget(
+                        imageBytes: _imageBytes,
+                        compressedBytes: _compressedBytes,
+                        calculateImageHeight: _calculateImageHeight,
+                        showActionButtons: false,
+                        backgroundColor: Colors.white,
+                        noImageText: 'No Image',
                       ),
 
                       const SizedBox(height: 30),
@@ -384,11 +380,8 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
+                            const SizedBox(
+                                width: 16), // Space between original and new
                             const Text(
                               'New: ',
                               style: TextStyle(

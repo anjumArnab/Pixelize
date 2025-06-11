@@ -1,9 +1,12 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../widgets/img_button.dart';
 
 class CropImageScreen extends StatefulWidget {
   final File? imageFile;
@@ -97,7 +100,7 @@ class _CropImageScreenState extends State<CropImageScreen> {
       }
     } catch (e) {
       debugPrint('Error creating temp file: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -216,7 +219,7 @@ class _CropImageScreenState extends State<CropImageScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Crop Image'),
         backgroundColor: Colors.purple,
@@ -245,7 +248,7 @@ class _CropImageScreenState extends State<CropImageScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           kIsWeb ? Icons.web : Icons.error_outline,
                           color: kIsWeb ? Colors.orange : Colors.red,
                           size: 64,
@@ -261,24 +264,11 @@ class _CropImageScreenState extends State<CropImageScreen> {
                         ),
                         const SizedBox(height: 24),
                         if (kIsWeb) ...[
-                          const Text(
-                            'Alternative: You can use online image editors or try the mobile version of this app.',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
+                          ImageButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: Icons.arrow_back_ios,
+                              backgroundColor: Colors.purple)
                         ],
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            foregroundColor: Colors.white,
-                          ),
-                          child: const Text('Go Back'),
-                        ),
                       ],
                     ),
                   ),
