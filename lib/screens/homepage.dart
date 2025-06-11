@@ -8,6 +8,9 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:get_storage/get_storage.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pixelize/screens/compress_img_page.dart';
+import '../screens/crop_img_page.dart';
 import '../widgets/img_button.dart';
 
 class Homepage extends StatefulWidget {
@@ -157,6 +160,133 @@ class _HomepageState extends State<Homepage> {
         _selectedImage = file;
         _webImage = null;
       });
+    }
+  }
+
+  Future<void> _cropImage() async {
+    if (_selectedImage == null && _webImage == null) {
+      _showSnackBar('No image selected to crop');
+      return;
+    }
+
+    try {
+      // Navigate to your custom crop screen
+      final result = await Navigator.push<Uint8List>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CropImageScreen(
+            imageFile: _selectedImage,
+            webImageBytes: _webImage,
+            imageName: _imageMetadata?['fileName'] ?? 'image',
+          ),
+        ),
+      );
+
+      // If user completed cropping (returned cropped bytes)
+      if (result != null) {
+        if (kIsWeb) {
+          // For web, update the web image bytes
+          final imageProvider = MemoryImage(result);
+          await _getImageDimensions(imageProvider);
+
+          // Create a temporary XFile for metadata extraction
+          final tempXFile = XFile.fromData(
+            result,
+            name: _imageMetadata?['fileName'] ?? 'cropped_image.png',
+            mimeType: 'image/png',
+          );
+          await _extractImageMetadata(result, tempXFile);
+
+          setState(() {
+            _webImage = result;
+          });
+        } else {
+          // For mobile, save the cropped bytes to a temporary file
+          final tempDir = await getTemporaryDirectory();
+          final tempFile = File(
+              '${tempDir.path}/cropped_${DateTime.now().millisecondsSinceEpoch}.png');
+          await tempFile.writeAsBytes(result);
+
+          final imageProvider = FileImage(tempFile);
+          await _getImageDimensions(imageProvider);
+
+          // Create XFile for metadata extraction
+          final xFile = XFile(tempFile.path);
+          await _extractImageMetadata(result, xFile);
+
+          setState(() {
+            _selectedImage = tempFile;
+          });
+        }
+
+        _showSnackBar('Image cropped successfully!');
+      }
+    } catch (e) {
+      _showSnackBar('Error cropping image: $e');
+    }
+  }
+
+  // Add the compress image method
+  Future<void> _compressImage() async {
+    if (_selectedImage == null && _webImage == null) {
+      _showSnackBar('No image selected to compress');
+      return;
+    }
+
+    try {
+      // Navigate to compress screen
+      final result = await Navigator.push<Uint8List>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CompressImageScreen(
+            imageFile: _selectedImage,
+            webImageBytes: _webImage,
+            imageName: _imageMetadata?['fileName'] ?? 'image',
+          ),
+        ),
+      );
+
+      // If user completed compression (returned compressed bytes)
+      if (result != null) {
+        if (kIsWeb) {
+          // For web, update the web image bytes
+          final imageProvider = MemoryImage(result);
+          await _getImageDimensions(imageProvider);
+
+          // Create a temporary XFile for metadata extraction
+          final tempXFile = XFile.fromData(
+            result,
+            name: _imageMetadata?['fileName'] ?? 'compressed_image.jpg',
+            mimeType: 'image/jpeg',
+          );
+          await _extractImageMetadata(result, tempXFile);
+
+          setState(() {
+            _webImage = result;
+          });
+        } else {
+          // For mobile, save the compressed bytes to a temporary file
+          final tempDir = await getTemporaryDirectory();
+          final tempFile = File(
+              '${tempDir.path}/compressed_${DateTime.now().millisecondsSinceEpoch}.jpg');
+          await tempFile.writeAsBytes(result);
+
+          final imageProvider = FileImage(tempFile);
+          await _getImageDimensions(imageProvider);
+
+          // Create XFile for metadata extraction
+          final xFile = XFile(tempFile.path);
+          await _extractImageMetadata(result, xFile);
+
+          setState(() {
+            _selectedImage = tempFile;
+          });
+        }
+
+        _showSnackBar('Image compressed successfully!');
+      }
+    } catch (e) {
+      _showSnackBar('Error compressing image: $e');
     }
   }
 
@@ -416,6 +546,59 @@ class _HomepageState extends State<Homepage> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    // Crop button (only show for mobile platforms)
+                                    if (!kIsWeb) ...[
+                                      GestureDetector(
+                                        onTap: _cropImage,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                Colors.purple.withOpacity(0.8),
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withOpacity(0.2),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                          ),
+                                          child: const Icon(
+                                            Icons.crop,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                    // Compress button
+                                    GestureDetector(
+                                      onTap: _compressImage,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.teal.withOpacity(0.8),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.black.withOpacity(0.2),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.compress,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
                                     // Save button
                                     GestureDetector(
                                       onTap: _saveImageData,
@@ -523,7 +706,7 @@ class _HomepageState extends State<Homepage> {
 
               const SizedBox(height: 20),
 
-              // Gallery and Camera Buttons
+              // Gallery, Camera, and Crop Buttons (Updated)
               Row(
                 children: [
                   Expanded(
@@ -543,8 +726,55 @@ class _HomepageState extends State<Homepage> {
                       backgroundColor: Colors.orange,
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ImageButton(
+                      onPressed: _cropImage,
+                      icon: Icons.crop,
+                      label: 'Crop',
+                      backgroundColor: Colors.purple,
+                    ),
+                  ),
                 ],
               ),
+
+              // Add Compress Button in a second row
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ImageButton(
+                      onPressed: _compressImage,
+                      icon: Icons.compress,
+                      label: 'Compress',
+                      backgroundColor: Colors.teal,
+                    ),
+                  ),
+                  // You can add more buttons here if needed
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: SizedBox(), // Empty space to maintain layout
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: SizedBox(), // Empty space to maintain layout
+                  ),
+                ],
+              ),
+
+              // Alternative: Full-width Compress Button (if you prefer this layout)
+              // if (_selectedImage != null || _webImage != null) ...[
+              //   const SizedBox(height: 12),
+              //   SizedBox(
+              //     width: double.infinity,
+              //     child: ImageButton(
+              //       onPressed: _compressImage,
+              //       icon: Icons.compress,
+              //       label: 'Compress Image',
+              //       backgroundColor: Colors.teal,
+              //     ),
+              //   ),
+              // ],
             ],
           ),
         ),
