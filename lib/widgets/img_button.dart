@@ -3,37 +3,35 @@ import 'package:flutter/material.dart';
 class ImageButton extends StatelessWidget {
   final VoidCallback onPressed;
   final IconData icon;
-  final String label;
+  final double size;
   final Color backgroundColor;
-  final Color foregroundColor;
+  final Color iconColor;
 
   const ImageButton({
     super.key,
     required this.onPressed,
     required this.icon,
-    required this.label,
+    this.size = 50.0,
     this.backgroundColor = Colors.blue,
-    this.foregroundColor = Colors.white,
+    this.iconColor = Colors.white,
   });
 
   @override
   Widget build(BuildContext context) {
-    return ElevatedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 20),
-      label: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
+    return SizedBox(
+      width: size,
+      height: size,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          shape: const CircleBorder(),
+          padding: EdgeInsets.zero,
         ),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor,
-        foregroundColor: foregroundColor,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+        child: Icon(
+          icon,
+          color: iconColor,
+          size: size * 0.5,
         ),
       ),
     );
