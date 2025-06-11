@@ -25,7 +25,6 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
   File? _imageFile;
   Uint8List? _imageBytes;
   Uint8List? _compressedBytes;
-  bool _isLoading = false;
   bool _isInitializing = true;
   bool _isCompressing = false;
   String? _errorMessage;
