@@ -9,7 +9,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image/image.dart' as img;
 import 'package:get_storage/get_storage.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:pixelize/screens/compress_img_page.dart';
+import '../screens/compress_img_page.dart';
+import '../widgets/img_preview_widget.dart';
 import '../screens/crop_img_page.dart';
 import '../widgets/img_button.dart';
 
@@ -500,208 +501,16 @@ class _HomepageState extends State<Homepage> {
               const SizedBox(height: 20),
 
               // Dynamic Image Display Area
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final containerWidth = constraints.maxWidth;
-                  final imageHeight =
-                      (_selectedImage != null || _webImage != null)
-                          ? _calculateImageHeight(containerWidth)
-                          : 200.0;
-
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    height: imageHeight,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.grey[300]!,
-                        width: 2,
-                        style: BorderStyle.solid,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey[100],
-                    ),
-                    child: (_selectedImage != null || _webImage != null)
-                        ? Stack(
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: kIsWeb
-                                    ? Image.memory(
-                                        _webImage!,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                        fit: BoxFit.contain,
-                                      )
-                                    : Image.file(
-                                        _selectedImage!,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                        fit: BoxFit.contain,
-                                      ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Crop button (only show for mobile platforms)
-                                    if (!kIsWeb) ...[
-                                      GestureDetector(
-                                        onTap: _cropImage,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                            color:
-                                                Colors.purple.withOpacity(0.8),
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black
-                                                    .withOpacity(0.2),
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          child: const Icon(
-                                            Icons.crop,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                    ],
-                                    // Compress button
-                                    GestureDetector(
-                                      onTap: _compressImage,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.teal.withOpacity(0.8),
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.2),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: const Icon(
-                                          Icons.compress,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Save button
-                                    GestureDetector(
-                                      onTap: _saveImageData,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withOpacity(0.8),
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.2),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: const Icon(
-                                          Icons.save,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Info button
-                                    GestureDetector(
-                                      onTap: _showImageMetadataDialog,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.withOpacity(0.8),
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.2),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: const Icon(
-                                          Icons.info,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    // Close button
-                                    GestureDetector(
-                                      onTap: _removeImage,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.withOpacity(0.8),
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.2),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: const Icon(
-                                          Icons.close,
-                                          color: Colors.white,
-                                          size: 20,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          )
-                        : const Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.add, size: 48, color: Colors.grey),
-                              SizedBox(height: 8),
-                              Text(
-                                'Add Image',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Image will resize dynamically',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                  );
-                },
+              ImagePreviewWidget(
+                imageFile: _selectedImage,
+                imageBytes: _webImage,
+                calculateImageHeight: _calculateImageHeight,
+                showActionButtons: true,
+                isAnimated: true,
+                onCrop: _cropImage,
+                onSave: _saveImageData,
+                onInfo: _showImageMetadataDialog,
+                onRemove: _removeImage,
               ),
 
               const SizedBox(height: 20),
@@ -713,68 +522,35 @@ class _HomepageState extends State<Homepage> {
                     child: ImageButton(
                       onPressed: _pickImageFromGallery,
                       icon: Icons.photo_library,
-                      label: 'Gallery',
                       backgroundColor: Colors.green,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 5),
                   Expanded(
                     child: ImageButton(
                       onPressed: _pickImageFromCamera,
                       icon: Icons.camera_alt,
-                      label: 'Camera',
                       backgroundColor: Colors.orange,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 5),
                   Expanded(
                     child: ImageButton(
                       onPressed: _cropImage,
                       icon: Icons.crop,
-                      label: 'Crop',
                       backgroundColor: Colors.purple,
                     ),
                   ),
-                ],
-              ),
-
-              // Add Compress Button in a second row
-              const SizedBox(height: 12),
-              Row(
-                children: [
+                  const SizedBox(height: 5),
                   Expanded(
                     child: ImageButton(
                       onPressed: _compressImage,
                       icon: Icons.compress,
-                      label: 'Compress',
                       backgroundColor: Colors.teal,
                     ),
                   ),
-                  // You can add more buttons here if needed
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: SizedBox(), // Empty space to maintain layout
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: SizedBox(), // Empty space to maintain layout
-                  ),
                 ],
               ),
-
-              // Alternative: Full-width Compress Button (if you prefer this layout)
-              // if (_selectedImage != null || _webImage != null) ...[
-              //   const SizedBox(height: 12),
-              //   SizedBox(
-              //     width: double.infinity,
-              //     child: ImageButton(
-              //       onPressed: _compressImage,
-              //       icon: Icons.compress,
-              //       label: 'Compress Image',
-              //       backgroundColor: Colors.teal,
-              //     ),
-              //   ),
-              // ],
             ],
           ),
         ),
