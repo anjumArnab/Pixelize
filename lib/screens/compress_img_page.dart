@@ -306,9 +306,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                         backgroundColor: Colors.white,
                         noImageText: 'No Image',
                       ),
-
-                      const SizedBox(height: 30),
-
+                      const SizedBox(height: 15),
                       // Quality Section
                       const Text(
                         'Quality',
@@ -318,9 +316,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                           color: Colors.black87,
                         ),
                       ),
-
                       const SizedBox(height: 16),
-
                       // Quality Slider
                       Row(
                         children: [
@@ -346,21 +342,19 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                               ),
                             ),
                           ),
+
+                          // Quality Percentage
+                          Text(
+                            '${_quality.round()}%',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ],
                       ),
-
-                      // Quality Percentage
-                      Text(
-                        '${_quality.round()}%',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-
-                      const SizedBox(height: 30),
-
+                      const SizedBox(height: 15),
                       // File Size Information
                       if (_originalSize > 0) ...[
                         Row(
@@ -403,7 +397,6 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                         ),
                         const SizedBox(height: 40),
                       ],
-
                       // Save Button
                       SizedBox(
                         width: double.infinity,
@@ -431,7 +424,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                                         strokeWidth: 2,
                                       ),
                                     ),
-                                    SizedBox(width: 12),
+                                    SizedBox(width: 10),
                                     Text(
                                       'Compressing...',
                                       style: TextStyle(fontSize: 16),
@@ -447,8 +440,7 @@ class _CompressImageScreenState extends State<CompressImageScreen> {
                                 ),
                         ),
                       ),
-
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 15),
                     ],
                   ),
                 ),
