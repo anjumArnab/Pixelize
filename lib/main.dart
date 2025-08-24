@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:get_storage/get_storage.dart';
+import 'screens/compress_image_page.dart';
+import '../screens/convert_image_page.dart';
+import '../screens/crop_image_page.dart';
+import '../screens/preview_page.dart';
 import '../screens/homepage.dart';
 
 void main() async {
@@ -10,7 +14,6 @@ void main() async {
 
 class Pixelize extends StatelessWidget {
   const Pixelize({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -20,6 +23,12 @@ class Pixelize extends StatelessWidget {
           primarySwatch: Colors.blue,
           useMaterial3: true,
           textTheme: GoogleFonts.poppinsTextTheme()),
+      routes: {
+        '/compress': (context) => const CompressImagePage(),
+        '/crop': (context) => const CropImagePage(),
+        '/convert': (context) => const ConvertImagePage(),
+        '/preview': (context) => const PreviewPage(),
+      },
       home: const Homepage(),
     );
   }
