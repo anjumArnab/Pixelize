@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../screens/export_image_page.dart';
-import '../screens/resize_image_page.dart';
-import '../screens/compress_image_page.dart';
-import '../screens/convert_image_page.dart';
-import '../screens/crop_image_page.dart';
+import 'screens/export_img_page.dart';
+import 'screens/resize_img_page.dart';
+import 'screens/compress_img_page.dart';
+import 'screens/convert_img_page.dart';
+import 'screens/crop_img_page.dart';
 import '../screens/homepage.dart';
 
 void main() async {
@@ -19,16 +19,19 @@ class Pixelize extends StatelessWidget {
       title: 'Pixelize',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-          primarySwatch: Colors.blue,
-          useMaterial3: true,
-          textTheme: GoogleFonts.poppinsTextTheme()),
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+        textTheme: GoogleFonts.poppinsTextTheme(),
+      ),
+      initialRoute: '/home',
       routes: {
+        '/home': (context) => const Homepage(),
         '/compress': (context) => const CompressImagePage(),
         '/crop': (context) => const CropImagePage(),
         '/convert': (context) => const ConvertImagePage(),
-        '/preview': (context) => const PreviewPage(),
+        '/resize': (context) => const ResizeImagePage(),
+        '/export': (context) => const ExportImagePage(),
       },
-      home: const Homepage(),
     );
   }
 }
