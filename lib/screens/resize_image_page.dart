@@ -372,22 +372,6 @@ class _ResizeImagePageState extends State<ResizeImagePage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.arrow_back,
-              color: Colors.grey[800],
-              size: 18,
-            ),
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: Text(
           'Resize',
           style: TextStyle(

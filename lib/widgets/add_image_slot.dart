@@ -6,11 +6,11 @@ class AddImageSlot extends StatelessWidget {
   final String? tooltip;
 
   const AddImageSlot({
-    Key? key,
+    super.key,
     required this.onTap,
     this.showBorder = true,
     this.tooltip,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

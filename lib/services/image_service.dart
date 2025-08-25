@@ -173,8 +173,8 @@ class ImageService {
                 title: const Text('Gallery'),
                 onTap: () async {
                   Navigator.pop(context);
-                  final file = await pickImageFromGallery();
-                  Navigator.pop(context, file);
+                  await pickImageFromGallery();
+                  // Navigator.pop(context, file);
                 },
               ),
               // Hide camera option on web if not supported

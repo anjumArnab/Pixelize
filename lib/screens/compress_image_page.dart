@@ -39,6 +39,7 @@ class _CompressImagePageState extends State<CompressImagePage> {
     }
   }
 
+/*
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -46,7 +47,7 @@ class _CompressImagePageState extends State<CompressImagePage> {
       _loadInitialImages();
     }
   }
-
+*/
   Future<void> _loadImageMetadata() async {
     if (selectedImages.isEmpty) return;
 
