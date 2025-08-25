@@ -5,7 +5,6 @@ import '../screens/resize_image_page.dart';
 import '../screens/compress_image_page.dart';
 import '../screens/convert_image_page.dart';
 import '../screens/crop_image_page.dart';
-import '../screens/preview_page.dart';
 import '../screens/homepage.dart';
 
 void main() async {
@@ -27,9 +26,7 @@ class Pixelize extends StatelessWidget {
         '/compress': (context) => const CompressImagePage(),
         '/crop': (context) => const CropImagePage(),
         '/convert': (context) => const ConvertImagePage(),
-        '/resize': (context) => const ResizeImagePage(),
         '/preview': (context) => const PreviewPage(),
-        '/export': (context) => const ExportImagePage(),
       },
       home: const Homepage(),
     );
