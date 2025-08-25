@@ -70,7 +70,7 @@ class Homepage extends StatelessWidget {
                       icon: Icons.photo_size_select_large,
                       title: 'Resize',
                       subtitle: 'Scale dimensions',
-                      onTap: () {},
+                      onTap: () => Navigator.pushNamed(context, '/resize'),
                     ),
                   ],
                 ),

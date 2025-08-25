@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:get_storage/get_storage.dart';
-import 'screens/compress_image_page.dart';
+import '../screens/export_image_page.dart';
+import '../screens/resize_image_page.dart';
+import '../screens/compress_image_page.dart';
 import '../screens/convert_image_page.dart';
 import '../screens/crop_image_page.dart';
-import '../screens/preview_page.dart';
 import '../screens/homepage.dart';
 
 void main() async {
-  await GetStorage.init();
   runApp(const Pixelize());
 }
 
@@ -27,7 +26,8 @@ class Pixelize extends StatelessWidget {
         '/compress': (context) => const CompressImagePage(),
         '/crop': (context) => const CropImagePage(),
         '/convert': (context) => const ConvertImagePage(),
-        '/preview': (context) => const PreviewPage(),
+        '/resize': (context) => const ResizeImagePage(),
+        '/export': (context) => const ExportImagePage(),
       },
       home: const Homepage(),
     );
