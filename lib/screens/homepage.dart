@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import '../widgets/image_slot.dart';
 
 class Homepage extends StatelessWidget {
   const Homepage({super.key});
@@ -70,7 +71,7 @@ class Homepage extends StatelessWidget {
                       icon: Icons.photo_size_select_large,
                       title: 'Resize',
                       subtitle: 'Scale dimensions',
-                      onTap: () {},
+                      onTap: () => Navigator.pushNamed(context, '/resize'),
                     ),
                   ],
                 ),
@@ -78,7 +79,7 @@ class Homepage extends StatelessWidget {
 
               const SizedBox(height: 15),
 
-              // Recent section
+              // Recent section with ImageSlots
               Expanded(
                 flex: 2,
                 child: Column(
@@ -93,30 +94,41 @@ class Homepage extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 10),
 
-                    // Recent items placeholder
+                    // Recent images using ImageSlot
                     Expanded(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
-                              spreadRadius: 1,
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'No recent items',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  ImageSlot(hasImage: true),
+                                  SizedBox(width: 12),
+                                  ImageSlot(hasImage: true),
+                                  SizedBox(width: 12),
+                                  ImageSlot(hasImage: true),
+                                  SizedBox(width: 12),
+                                  ImageSlot(hasImage: true),
+                                  SizedBox(width: 12),
+                                  ImageSlot(hasImage: false),
+                                  SizedBox(width: 12),
+                                  ImageSlot(hasImage: false),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '4 images processed today',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -125,7 +137,7 @@ class Homepage extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              //const SizedBox(height: 20),
 
               // Bottom indicator dots
               Row(
