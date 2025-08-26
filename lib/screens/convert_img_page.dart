@@ -152,6 +152,51 @@ class _ConvertImagePageState extends State<ConvertImagePage> {
     }
   }
 
+  // Responsive helper methods
+  double _getHorizontalPadding(double screenWidth) {
+    if (screenWidth > 1200) return 40.0; // Large desktop
+    if (screenWidth > 800) return 30.0; // Tablet
+    return 20.0; // Mobile
+  }
+
+  double _getSectionSpacing(double screenWidth, bool isLandscape) {
+    if (isLandscape) return screenWidth > 800 ? 24.0 : 20.0;
+    return screenWidth > 800 ? 32.0 : 28.0;
+  }
+
+  double _getCardSpacing(double screenWidth) {
+    return screenWidth > 600 ? 16.0 : 12.0;
+  }
+
+  EdgeInsets _getCardPadding(double screenWidth) {
+    if (screenWidth > 800) return const EdgeInsets.all(20.0);
+    if (screenWidth > 600) return const EdgeInsets.all(18.0);
+    return const EdgeInsets.all(16.0);
+  }
+
+  double _getFontSizeTitle(double screenWidth) {
+    if (screenWidth > 800) return 18.0;
+    if (screenWidth > 600) return 17.0;
+    return 16.0;
+  }
+
+  double _getFontSizeBody(double screenWidth) {
+    if (screenWidth > 800) return 16.0;
+    if (screenWidth > 600) return 15.0;
+    return 14.0;
+  }
+
+  int _getFormatGridCrossAxisCount(double screenWidth) {
+    if (screenWidth > 1000) return 6; // Large desktop - single row
+    if (screenWidth > 600) return 3; // Tablet - same as mobile
+    return 3; // Mobile
+  }
+
+  double _getFormatGridChildAspectRatio(double screenWidth) {
+    if (screenWidth > 1000) return 1.0; // More square on large screens
+    return 1.2; // Default ratio for smaller screens
+  }
+
   final List<Map<String, String>> formats = [
     {'format': 'JPEG', 'description': 'Small size'},
     {'format': 'PNG', 'description': 'Transparent'},
@@ -163,6 +208,9 @@ class _ConvertImagePageState extends State<ConvertImagePage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     final estimatedSize = _getEstimatedOutputSize();
 
     return Scaffold(
@@ -171,279 +219,417 @@ class _ConvertImagePageState extends State<ConvertImagePage> {
         backgroundColor: Colors.grey[50],
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: Colors.black87,
+            size: screenWidth > 600 ? 24 : 22,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           'Convert',
           style: TextStyle(
             color: Colors.black87,
-            fontSize: 18,
+            fontSize: screenWidth > 600 ? 20 : 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: false,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final availableWidth = constraints.maxWidth;
+            final horizontalPadding = _getHorizontalPadding(availableWidth);
+            final sectionSpacing =
+                _getSectionSpacing(availableWidth, isLandscape);
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: isLandscape ? 16.0 : 20.0,
+              ),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: availableWidth > 1000 ? 900 : double.infinity,
+                ),
+                child: Center(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Selected Images section
+                      _buildSelectedImagesSection(availableWidth),
+
+                      SizedBox(height: sectionSpacing),
+
+                      // Output Format section
+                      _buildOutputFormatSection(availableWidth),
+
+                      SizedBox(height: sectionSpacing),
+
+                      // Format-specific options
+                      if (selectedFormat == 'PNG')
+                        _buildPngOptionsSection(availableWidth, sectionSpacing),
+
+                      if (selectedFormat == 'JPEG')
+                        _buildJpegOptionsSection(
+                            availableWidth, sectionSpacing),
+
+                      // Output info
+                      _buildOutputInfo(availableWidth, estimatedSize),
+
+                      SizedBox(height: sectionSpacing),
+
+                      // Action buttons
+                      _buildActionButtons(availableWidth, isLandscape),
+
+                      // Extra padding to ensure no overflow
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedImagesSection(double screenWidth) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Selected Images (${_stateManager.imageCount})',
+          style: TextStyle(
+            fontSize: _getFontSizeTitle(screenWidth),
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+
+        SizedBox(height: screenWidth > 600 ? 18 : 16),
+
+        // Image slots row - Dynamic based on selected images
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
             children: [
-              // Selected Images section
-              Text(
-                'Selected Images (${_stateManager.imageCount})',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
+              ...List.generate(_stateManager.imageCount, (index) {
+                return Padding(
+                  padding: EdgeInsets.only(
+                    right: index < _stateManager.imageCount - 1
+                        ? _getCardSpacing(screenWidth)
+                        : 0,
+                  ),
+                  child: ImageSlot(
+                    hasImage: true,
+                    imageFile: _stateManager.getImageAt(index),
+                    onTap: () {
+                      // Optional: Show image preview or options
+                    },
+                  ),
+                );
+              }),
+              if (_stateManager.imageCount == 0)
+                _buildNoImagesPlaceholder(screenWidth),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNoImagesPlaceholder(double screenWidth) {
+    final isLargeScreen = screenWidth > 600;
+
+    return Center(
+      child: Column(
+        children: [
+          Icon(
+            Icons.image_not_supported,
+            size: isLargeScreen ? 56 : 48,
+            color: Colors.grey[400],
+          ),
+          SizedBox(height: isLargeScreen ? 12 : 8),
+          Text(
+            'No images selected',
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: _getFontSizeBody(screenWidth),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOutputFormatSection(double screenWidth) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Output Format',
+          style: TextStyle(
+            fontSize: _getFontSizeTitle(screenWidth),
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+
+        SizedBox(height: screenWidth > 600 ? 18 : 16),
+
+        // Format grid - Responsive
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: _getFormatGridCrossAxisCount(screenWidth),
+          crossAxisSpacing: screenWidth > 600 ? 16 : 12,
+          mainAxisSpacing: screenWidth > 600 ? 16 : 12,
+          childAspectRatio: _getFormatGridChildAspectRatio(screenWidth),
+          children: formats
+              .map((format) => FormatButton(
+                    format: format['format']!,
+                    description: format['description']!,
+                    isSelected: selectedFormat == format['format'],
+                    onPressed: () {
+                      setState(() {
+                        selectedFormat = format['format']!;
+                      });
+                    },
+                  ))
+              .toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPngOptionsSection(double screenWidth, double sectionSpacing) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'PNG Options',
+          style: TextStyle(
+            fontSize: _getFontSizeTitle(screenWidth),
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        SizedBox(height: screenWidth > 600 ? 18 : 16),
+        Container(
+          padding: _getCardPadding(screenWidth),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(screenWidth > 600 ? 16 : 12),
+            border: Border.all(color: Colors.grey[200]!),
+            boxShadow: screenWidth > 600
+                ? [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.05),
+                      spreadRadius: 1,
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            children: [
+              PngOptionRow(
+                title: 'Compression',
+                subtitle: 'Reduce file size',
+                value: compressionEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    compressionEnabled = value;
+                  });
+                },
               ),
-
-              const SizedBox(height: 16),
-
-              // Image slots row - Dynamic based on selected images
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ...List.generate(_stateManager.imageCount, (index) {
-                      return Padding(
-                        padding: EdgeInsets.only(
-                            right:
-                                index < _stateManager.imageCount - 1 ? 12 : 0),
-                        child: ImageSlot(
-                          hasImage: true,
-                          imageFile: _stateManager.getImageAt(index),
-                          onTap: () {
-                            // Optional: Show image preview or options
-                          },
-                        ),
-                      );
-                    }),
-                    if (_stateManager.imageCount == 0)
-                      Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.image_not_supported,
-                              size: 48,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'No images selected',
-                              style: TextStyle(
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+              SizedBox(height: screenWidth > 600 ? 20 : 16),
+              PngOptionRow(
+                title: 'Interlaced',
+                subtitle: 'Progressive loading',
+                value: interlacedEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    interlacedEnabled = value;
+                  });
+                },
               ),
+            ],
+          ),
+        ),
+        SizedBox(height: sectionSpacing),
+      ],
+    );
+  }
 
-              const SizedBox(height: 32),
-
-              // Output Format section
-              const Text(
-                'Output Format',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Format grid
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 3,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.2,
-                children: formats
-                    .map((format) => FormatButton(
-                          format: format['format']!,
-                          description: format['description']!,
-                          isSelected: selectedFormat == format['format'],
-                          onPressed: () {
-                            setState(() {
-                              selectedFormat = format['format']!;
-                            });
-                          },
-                        ))
-                    .toList(),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Format-specific options
-              if (selectedFormat == 'PNG') ...[
-                const Text(
-                  'PNG Options',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Column(
-                    children: [
-                      PngOptionRow(
-                        title: 'Compression',
-                        subtitle: 'Reduce file size',
-                        value: compressionEnabled,
-                        onChanged: (value) {
-                          setState(() {
-                            compressionEnabled = value;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      PngOptionRow(
-                        title: 'Interlaced',
-                        subtitle: 'Progressive loading',
-                        value: interlacedEnabled,
-                        onChanged: (value) {
-                          setState(() {
-                            interlacedEnabled = value;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
-
-              if (selectedFormat == 'JPEG') ...[
-                const Text(
-                  'JPEG Options',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Quality',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.black54,
-                            ),
-                          ),
-                          Text(
-                            '${jpegQuality}%',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          activeTrackColor: Colors.black87,
-                          inactiveTrackColor: Colors.grey[300],
-                          thumbColor: Colors.black87,
-                          thumbShape: const RoundSliderThumbShape(
-                              enabledThumbRadius: 8),
-                          trackHeight: 4,
-                        ),
-                        child: Slider(
-                          value: jpegQuality.toDouble(),
-                          min: 10,
-                          max: 100,
-                          onChanged: (value) {
-                            setState(() {
-                              jpegQuality = value.round();
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-              ],
-
-              // Output info
-              Text(
-                _stateManager.hasImages
-                    ? 'Output: ${_stateManager.imageCount} ${selectedFormat} files (~${estimatedSize.toStringAsFixed(1)} MB total)'
-                    : 'Output: No images selected',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // Action buttons
+  Widget _buildJpegOptionsSection(double screenWidth, double sectionSpacing) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'JPEG Options',
+          style: TextStyle(
+            fontSize: _getFontSizeTitle(screenWidth),
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        SizedBox(height: screenWidth > 600 ? 18 : 16),
+        Container(
+          padding: _getCardPadding(screenWidth),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(screenWidth > 600 ? 16 : 12),
+            border: Border.all(color: Colors.grey[200]!),
+            boxShadow: screenWidth > 600
+                ? [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.05),
+                      spreadRadius: 1,
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: ActionButton(
-                      text: 'Preview',
-                      onPressed: _stateManager.hasImages && !_isProcessing
-                          ? () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text(
-                                        'Preview functionality coming soon')),
-                              );
-                            }
-                          : null,
+                  Text(
+                    'Quality',
+                    style: TextStyle(
+                      fontSize: _getFontSizeBody(screenWidth),
+                      color: Colors.black54,
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ActionButton(
-                      text: _isProcessing ? 'Converting...' : 'Convert',
-                      isPrimary: true,
-                      onPressed: _stateManager.hasImages && !_isProcessing
-                          ? _convertImages
-                          : null,
+                  Text(
+                    '${jpegQuality}%',
+                    style: TextStyle(
+                      fontSize: _getFontSizeBody(screenWidth),
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black87,
                     ),
                   ),
                 ],
               ),
-
-              // Extra padding to ensure no overflow
-              const SizedBox(height: 20),
+              SizedBox(height: screenWidth > 600 ? 8 : 4),
+              SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  activeTrackColor: Colors.black87,
+                  inactiveTrackColor: Colors.grey[300],
+                  thumbColor: Colors.black87,
+                  thumbShape: RoundSliderThumbShape(
+                    enabledThumbRadius: screenWidth > 600 ? 10 : 8,
+                  ),
+                  trackHeight: screenWidth > 600 ? 5 : 4,
+                ),
+                child: Slider(
+                  value: jpegQuality.toDouble(),
+                  min: 10,
+                  max: 100,
+                  onChanged: (value) {
+                    setState(() {
+                      jpegQuality = value.round();
+                    });
+                  },
+                ),
+              ),
             ],
           ),
         ),
+        SizedBox(height: sectionSpacing),
+      ],
+    );
+  }
+
+  Widget _buildOutputInfo(double screenWidth, double estimatedSize) {
+    return Container(
+      width: double.infinity,
+      padding: _getCardPadding(screenWidth),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(screenWidth > 600 ? 16 : 12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Text(
+        _stateManager.hasImages
+            ? 'Output: ${_stateManager.imageCount} ${selectedFormat} files (~${estimatedSize.toStringAsFixed(1)} MB total)'
+            : 'Output: No images selected',
+        style: TextStyle(
+          fontSize: _getFontSizeBody(screenWidth),
+          color: Colors.grey[700],
+          fontWeight: FontWeight.w500,
+        ),
+        textAlign: TextAlign.center,
       ),
     );
+  }
+
+  Widget _buildActionButtons(double screenWidth, bool isLandscape) {
+    return screenWidth > 800 && !isLandscape
+        ? Row(
+            children: [
+              Expanded(
+                child: ActionButton(
+                  text: 'Preview',
+                  onPressed: _stateManager.hasImages && !_isProcessing
+                      ? () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Preview functionality coming soon')),
+                          );
+                        }
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ActionButton(
+                  text: _isProcessing ? 'Converting...' : 'Convert',
+                  isPrimary: true,
+                  onPressed: _stateManager.hasImages && !_isProcessing
+                      ? _convertImages
+                      : null,
+                ),
+              ),
+            ],
+          )
+        : Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: ActionButton(
+                  text: 'Preview',
+                  onPressed: _stateManager.hasImages && !_isProcessing
+                      ? () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Preview functionality coming soon')),
+                          );
+                        }
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ActionButton(
+                  text: _isProcessing ? 'Converting...' : 'Convert',
+                  isPrimary: true,
+                  onPressed: _stateManager.hasImages && !_isProcessing
+                      ? _convertImages
+                      : null,
+                ),
+              ),
+            ],
+          );
   }
 }
