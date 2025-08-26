@@ -126,45 +126,8 @@ class _CompressImagePageState extends State<CompressImagePage> {
     return _getTotalOriginalSize() * (_qualityValue / 100);
   }
 
-  // Responsive helper methods
-  double _getHorizontalPadding(double screenWidth) {
-    if (screenWidth > 1200) return 40.0; // Large desktop
-    if (screenWidth > 800) return 30.0; // Tablet
-    return 20.0; // Mobile
-  }
-
-  double _getSectionSpacing(double screenWidth, bool isLandscape) {
-    if (isLandscape) return screenWidth > 800 ? 24.0 : 20.0;
-    return screenWidth > 800 ? 32.0 : 28.0;
-  }
-
-  double _getCardSpacing(double screenWidth) {
-    return screenWidth > 600 ? 16.0 : 12.0;
-  }
-
-  EdgeInsets _getCardPadding(double screenWidth) {
-    if (screenWidth > 800) return const EdgeInsets.all(20.0);
-    if (screenWidth > 600) return const EdgeInsets.all(18.0);
-    return const EdgeInsets.all(16.0);
-  }
-
-  double _getFontSizeTitle(double screenWidth) {
-    if (screenWidth > 800) return 18.0;
-    if (screenWidth > 600) return 17.0;
-    return 16.0;
-  }
-
-  double _getFontSizeBody(double screenWidth) {
-    if (screenWidth > 800) return 16.0;
-    if (screenWidth > 600) return 15.0;
-    return 14.0;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
     final originalSize = _getTotalOriginalSize();
     final estimatedSize = _getEstimatedCompressedSize();
     final savedSize = originalSize - estimatedSize;
@@ -175,473 +138,327 @@ class _CompressImagePageState extends State<CompressImagePage> {
         backgroundColor: Colors.grey[50],
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: Colors.black87,
-            size: screenWidth > 600 ? 24 : 22,
-          ),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Compress',
           style: TextStyle(
             color: Colors.black87,
-            fontSize: screenWidth > 600 ? 20 : 18,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: false,
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final availableWidth = constraints.maxWidth;
-            final horizontalPadding = _getHorizontalPadding(availableWidth);
-            final sectionSpacing =
-                _getSectionSpacing(availableWidth, isLandscape);
-
-            return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: isLandscape ? 16.0 : 20.0,
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: availableWidth > 1000 ? 800 : double.infinity,
-                ),
-                child: Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Selected Images section
-                      _buildSelectedImagesSection(availableWidth, isLandscape),
-
-                      SizedBox(height: sectionSpacing),
-
-                      // Quality section
-                      _buildQualitySection(availableWidth),
-
-                      SizedBox(height: sectionSpacing),
-
-                      // Size Preview section
-                      _buildSizePreviewSection(
-                        availableWidth,
-                        originalSize,
-                        estimatedSize,
-                        savedSize,
-                      ),
-
-                      SizedBox(height: sectionSpacing),
-
-                      // Lossless/Lossy toggle
-                      _buildCompressionToggle(availableWidth),
-
-                      SizedBox(height: isLandscape ? 32 : 40),
-
-                      // Action buttons
-                      _buildActionButtons(availableWidth, isLandscape),
-
-                      // Extra padding to ensure no overflow
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectedImagesSection(double screenWidth, bool isLandscape) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Selected Images (${_stateManager.imageCount})',
-          style: TextStyle(
-            fontSize: _getFontSizeTitle(screenWidth),
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-
-        SizedBox(height: screenWidth > 600 ? 18 : 16),
-
-        // Image slots row - Dynamic based on selected images
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              ...List.generate(_stateManager.imageCount, (index) {
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index < _stateManager.imageCount - 1
-                        ? _getCardSpacing(screenWidth)
-                        : 0,
-                  ),
-                  child: ImageSlot(
-                    hasImage: true,
-                    imageFile: _stateManager.getImageAt(index),
-                    onTap: () {
-                      // Optional: Show image preview or options
-                    },
-                  ),
-                );
-              }),
-              if (_stateManager.imageCount == 0)
-                _buildNoImagesPlaceholder(screenWidth),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNoImagesPlaceholder(double screenWidth) {
-    final isLargeScreen = screenWidth > 600;
-
-    return Center(
-      child: Column(
-        children: [
-          Icon(
-            Icons.image_not_supported,
-            size: isLargeScreen ? 56 : 48,
-            color: Colors.grey[400],
-          ),
-          SizedBox(height: isLargeScreen ? 12 : 8),
-          Text(
-            'No images selected',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: _getFontSizeBody(screenWidth),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQualitySection(double screenWidth) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Quality',
-          style: TextStyle(
-            fontSize: _getFontSizeTitle(screenWidth),
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-
-        SizedBox(height: screenWidth > 600 ? 18 : 16),
-
-        // Quality slider (only show if not lossless)
-        if (!_isLossless)
-          Container(
-            padding: _getCardPadding(screenWidth),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(screenWidth > 600 ? 16 : 12),
-              border: Border.all(color: Colors.grey[200]!),
-              boxShadow: screenWidth > 600
-                  ? [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.05),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Quality',
-                      style: TextStyle(
-                        fontSize: _getFontSizeBody(screenWidth),
-                        color: Colors.black54,
-                      ),
-                    ),
-                    Text(
-                      '${_qualityValue.round()}%',
-                      style: TextStyle(
-                        fontSize: _getFontSizeBody(screenWidth),
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: screenWidth > 600 ? 8 : 4),
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    activeTrackColor: Colors.black87,
-                    inactiveTrackColor: Colors.grey[300],
-                    thumbColor: Colors.black87,
-                    thumbShape: RoundSliderThumbShape(
-                      enabledThumbRadius: screenWidth > 600 ? 10 : 8,
-                    ),
-                    trackHeight: screenWidth > 600 ? 5 : 4,
-                  ),
-                  child: Slider(
-                    value: _qualityValue,
-                    min: 10,
-                    max: 100,
-                    onChanged: (value) {
-                      setState(() {
-                        _qualityValue = value;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildSizePreviewSection(
-    double screenWidth,
-    double originalSize,
-    double estimatedSize,
-    double savedSize,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Size Preview',
-          style: TextStyle(
-            fontSize: _getFontSizeTitle(screenWidth),
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-
-        SizedBox(height: screenWidth > 600 ? 18 : 16),
-
-        // Size preview container
-        Container(
-          width: double.infinity,
-          padding: _getCardPadding(screenWidth),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(screenWidth > 600 ? 16 : 12),
-            border: Border.all(color: Colors.grey[200]!),
-            boxShadow: screenWidth > 600
-                ? [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.05),
-                      spreadRadius: 1,
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSizeRow(
-                'Original:',
-                _stateManager.hasImages
-                    ? '${originalSize.toStringAsFixed(1)} MB'
-                    : 'No images',
-                screenWidth,
-              ),
-              SizedBox(height: screenWidth > 600 ? 12 : 8),
-              _buildSizeRow(
-                'Compressed:',
-                _stateManager.hasImages
-                    ? '${estimatedSize.toStringAsFixed(1)} MB'
-                    : 'No images',
-                screenWidth,
-              ),
-              SizedBox(height: screenWidth > 600 ? 12 : 8),
-              _buildSizeRow(
-                'Saved:',
-                _stateManager.hasImages
-                    ? '${savedSize.toStringAsFixed(1)} MB'
-                    : 'No images',
-                screenWidth,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCompressionToggle(double screenWidth) {
-    final isLargeScreen = screenWidth > 600;
-    final toggleHeight = isLargeScreen ? 48.0 : 40.0;
-    final borderRadius = toggleHeight / 2;
-
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: toggleHeight,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(borderRadius),
-              border: Border.all(color: Colors.grey[200]!),
-              boxShadow: isLargeScreen
-                  ? [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.05),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _isLossless = true),
-                    child: Container(
-                      height: toggleHeight - 4,
-                      margin: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: _isLossless ? Colors.black87 : Colors.grey[100],
-                        borderRadius: BorderRadius.circular(borderRadius - 2),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Lossless',
-                          style: TextStyle(
-                            fontSize: _getFontSizeBody(screenWidth),
-                            color: _isLossless ? Colors.white : Colors.black54,
-                            fontWeight: _isLossless
-                                ? FontWeight.w500
-                                : FontWeight.normal,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+              // Selected Images section
+              Text(
+                'Selected Images (${_stateManager.imageCount})',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
                 ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => setState(() => _isLossless = false),
-                    child: Container(
-                      height: toggleHeight - 4,
-                      margin: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: !_isLossless ? Colors.black87 : Colors.grey[100],
-                        borderRadius: BorderRadius.circular(borderRadius - 2),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Lossy',
-                          style: TextStyle(
-                            fontSize: _getFontSizeBody(screenWidth),
-                            color: !_isLossless ? Colors.white : Colors.black54,
-                            fontWeight: !_isLossless
-                                ? FontWeight.w500
-                                : FontWeight.normal,
-                          ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Image slots row - Dynamic based on selected images
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ...List.generate(_stateManager.imageCount, (index) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            right:
+                                index < _stateManager.imageCount - 1 ? 12 : 0),
+                        child: ImageSlot(
+                          hasImage: true,
+                          imageFile: _stateManager.getImageAt(index),
+                          onTap: () {
+                            // Optional: Show image preview or options
+                          },
+                        ),
+                      );
+                    }),
+                    if (_stateManager.imageCount == 0)
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No images selected',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Quality section
+              const Text(
+                'Quality',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Quality slider (only show if not lossless)
+              if (!_isLossless) ...[
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Quality',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
+                            ),
+                          ),
+                          Text(
+                            '${_qualityValue.round()}%',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          activeTrackColor: Colors.black87,
+                          inactiveTrackColor: Colors.grey[300],
+                          thumbColor: Colors.black87,
+                          thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 8),
+                          trackHeight: 4,
+                        ),
+                        child: Slider(
+                          value: _qualityValue,
+                          min: 10,
+                          max: 100,
+                          onChanged: (value) {
+                            setState(() {
+                              _qualityValue = value;
+                            });
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
-            ),
+
+              const SizedBox(height: 32),
+
+              // Size Preview section
+              const Text(
+                'Size Preview',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Size preview container
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSizeRow(
+                        'Original:',
+                        _stateManager.hasImages
+                            ? '${originalSize.toStringAsFixed(1)} MB'
+                            : 'No images'),
+                    const SizedBox(height: 8),
+                    _buildSizeRow(
+                        'Compressed:',
+                        _stateManager.hasImages
+                            ? '${estimatedSize.toStringAsFixed(1)} MB'
+                            : 'No images'),
+                    const SizedBox(height: 8),
+                    _buildSizeRow(
+                        'Saved:',
+                        _stateManager.hasImages
+                            ? '${savedSize.toStringAsFixed(1)} MB'
+                            : 'No images'),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Lossless/Lossy toggle
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _isLossless = true),
+                              child: Container(
+                                height: 36,
+                                margin: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: _isLossless
+                                      ? Colors.black87
+                                      : Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Lossless',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: _isLossless
+                                          ? Colors.white
+                                          : Colors.black54,
+                                      fontWeight: _isLossless
+                                          ? FontWeight.w500
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setState(() => _isLossless = false),
+                              child: Container(
+                                height: 36,
+                                margin: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: !_isLossless
+                                      ? Colors.black87
+                                      : Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Lossy',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: !_isLossless
+                                          ? Colors.white
+                                          : Colors.black54,
+                                      fontWeight: !_isLossless
+                                          ? FontWeight.w500
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 40),
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ActionButton(
+                      text: 'Preview',
+                      onPressed: Navigator.canPop(context)
+                          ? () => Navigator.pop(context)
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ActionButton(
+                      text: _isProcessing ? 'Processing...' : 'Process',
+                      isPrimary: true,
+                      onPressed: _stateManager.hasImages && !_isProcessing
+                          ? _compressImages
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+
+              // Extra padding to ensure no overflow
+              const SizedBox(height: 20),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildActionButtons(double screenWidth, bool isLandscape) {
-    return screenWidth > 800 && !isLandscape
-        ? Row(
-            children: [
-              Expanded(
-                child: ActionButton(
-                  text: 'Preview',
-                  onPressed: _stateManager.hasImages && !_isProcessing
-                      ? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Preview functionality coming soon')),
-                          );
-                        }
-                      : null,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ActionButton(
-                  text: _isProcessing ? 'Processing...' : 'Process',
-                  isPrimary: true,
-                  onPressed: _stateManager.hasImages && !_isProcessing
-                      ? _compressImages
-                      : null,
-                ),
-              ),
-            ],
-          )
-        : Column(
-            children: [
-              SizedBox(
-                width: double.infinity,
-                child: ActionButton(
-                  text: 'Preview',
-                  onPressed: _stateManager.hasImages && !_isProcessing
-                      ? () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Preview functionality coming soon')),
-                          );
-                        }
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ActionButton(
-                  text: _isProcessing ? 'Processing...' : 'Process',
-                  isPrimary: true,
-                  onPressed: _stateManager.hasImages && !_isProcessing
-                      ? _compressImages
-                      : null,
-                ),
-              ),
-            ],
-          );
-  }
-
-  Widget _buildSizeRow(String label, String value, double screenWidth) {
+  Widget _buildSizeRow(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: _getFontSizeBody(screenWidth),
+          style: const TextStyle(
+            fontSize: 14,
             color: Colors.black54,
           ),
         ),
         Text(
           value,
-          style: TextStyle(
-            fontSize: _getFontSizeBody(screenWidth),
+          style: const TextStyle(
+            fontSize: 14,
             fontWeight: FontWeight.w500,
             color: Colors.black87,
           ),

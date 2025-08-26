@@ -188,373 +188,226 @@ class _CropImagePageState extends State<CropImagePage> {
     });
   }
 
-  // Responsive helper methods
-  double _getHorizontalPadding(double screenWidth) {
-    if (screenWidth > 1200) return 40.0; // Large desktop
-    if (screenWidth > 800) return 30.0; // Tablet
-    return 20.0; // Mobile
-  }
-
-  double _getSectionSpacing(double screenWidth, bool isLandscape) {
-    if (isLandscape) return screenWidth > 800 ? 24.0 : 20.0;
-    return screenWidth > 800 ? 32.0 : 28.0;
-  }
-
-  double _getCardSpacing(double screenWidth) {
-    return screenWidth > 600 ? 16.0 : 12.0;
-  }
-
-  EdgeInsets _getCardPadding(double screenWidth) {
-    if (screenWidth > 800) return const EdgeInsets.all(20.0);
-    if (screenWidth > 600) return const EdgeInsets.all(18.0);
-    return const EdgeInsets.all(16.0);
-  }
-
-  double _getFontSizeTitle(double screenWidth) {
-    if (screenWidth > 800) return 18.0;
-    if (screenWidth > 600) return 17.0;
-    return 16.0;
-  }
-
-  double _getFontSizeBody(double screenWidth) {
-    if (screenWidth > 800) return 16.0;
-    if (screenWidth > 600) return 15.0;
-    return 14.0;
-  }
-
-  double _getBorderRadius(double screenWidth) {
-    return screenWidth > 600 ? 16.0 : 12.0;
-  }
-
-  double _getIconSize(double screenWidth) {
-    if (screenWidth > 800) return 56.0;
-    if (screenWidth > 600) return 52.0;
-    return 48.0;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isLandscape =
-        MediaQuery.of(context).orientation == Orientation.landscape;
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.grey[50],
         elevation: 0,
         leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: Colors.black87,
-            size: screenWidth > 600 ? 24 : 22,
-          ),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(
+        title: const Text(
           'Crop',
           style: TextStyle(
             color: Colors.black87,
-            fontSize: screenWidth > 600 ? 20 : 18,
+            fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
         ),
         centerTitle: false,
       ),
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final availableWidth = constraints.maxWidth;
-            final horizontalPadding = _getHorizontalPadding(availableWidth);
-            final sectionSpacing =
-                _getSectionSpacing(availableWidth, isLandscape);
-
-            return SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: horizontalPadding,
-                vertical: isLandscape ? 16.0 : 20.0,
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: availableWidth > 1000 ? 800 : double.infinity,
-                ),
-                child: Center(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Selected Images section
-                      _buildSelectedImagesSection(availableWidth),
-
-                      SizedBox(height: sectionSpacing),
-
-                      // Crop preview info
-                      _buildCropPreviewSection(availableWidth),
-
-                      SizedBox(height: sectionSpacing),
-
-                      // Aspect Ratio section
-                      _buildAspectRatioSection(availableWidth),
-
-                      SizedBox(height: sectionSpacing),
-
-                      // Output size
-                      _buildOutputSizeSection(availableWidth),
-
-                      SizedBox(height: isLandscape ? 32 : 40),
-
-                      // Action buttons
-                      _buildActionButtons(availableWidth, isLandscape),
-
-                      // Extra padding to ensure no overflow
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectedImagesSection(double screenWidth) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Selected Images (${_stateManager.imageCount})',
-          style: TextStyle(
-            fontSize: _getFontSizeTitle(screenWidth),
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
-
-        SizedBox(height: screenWidth > 600 ? 18 : 16),
-
-        // Image slots row - Dynamic based on selected images
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ...List.generate(_stateManager.imageCount, (index) {
-                return Padding(
-                  padding: EdgeInsets.only(
-                    right: index < _stateManager.imageCount - 1
-                        ? _getCardSpacing(screenWidth)
-                        : 0,
-                  ),
-                  child: ImageSlot(
-                    hasImage: true,
-                    imageFile: _stateManager.getImageAt(index),
-                    onTap: () {
-                      // Optional: Show image preview or options
-                    },
-                  ),
-                );
-              }),
-              if (_stateManager.imageCount == 0)
-                _buildNoImagesPlaceholder(screenWidth),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildNoImagesPlaceholder(double screenWidth) {
-    final isLargeScreen = screenWidth > 600;
-
-    return Center(
-      child: Column(
-        children: [
-          Icon(
-            Icons.image_not_supported,
-            size: isLargeScreen ? 56 : 48,
-            color: Colors.grey[400],
-          ),
-          SizedBox(height: isLargeScreen ? 12 : 8),
-          Text(
-            'No images selected',
-            style: TextStyle(
-              color: Colors.grey[600],
-              fontSize: _getFontSizeBody(screenWidth),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCropPreviewSection(double screenWidth) {
-    return Container(
-      width: double.infinity,
-      padding: _getCardPadding(screenWidth),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(_getBorderRadius(screenWidth)),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: screenWidth > 600
-            ? [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.05),
-                  spreadRadius: 1,
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
+              // Selected Image section
+              Text(
+                'Selected Images (${_stateManager.imageCount})',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
                 ),
-              ]
-            : null,
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.crop,
-            size: _getIconSize(screenWidth),
-            color: Colors.grey[400],
-          ),
-          SizedBox(height: screenWidth > 600 ? 12 : 8),
-          Text(
-            'Crop Preview',
-            style: TextStyle(
-              fontSize: _getFontSizeTitle(screenWidth),
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[700],
-            ),
-          ),
-          SizedBox(height: screenWidth > 600 ? 6 : 4),
-          Text(
-            'Selected ratio: $selectedRatio',
-            style: TextStyle(
-              fontSize: _getFontSizeBody(screenWidth),
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+              ),
 
-  Widget _buildAspectRatioSection(double screenWidth) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Aspect Ratio',
-          style: TextStyle(
-            fontSize: _getFontSizeTitle(screenWidth),
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
-        ),
+              const SizedBox(height: 16),
 
-        SizedBox(height: screenWidth > 600 ? 18 : 16),
-
-        // Aspect ratio buttons - Responsive
-        screenWidth > 800
-            ? Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: _buildAspectRatioButtons(screenWidth),
-              )
-            : SingleChildScrollView(
+              // Image slots row
+              SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: _buildAspectRatioButtons(screenWidth),
+                  children: [
+                    ...List.generate(_stateManager.imageCount, (index) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            right:
+                                index < _stateManager.imageCount - 1 ? 12 : 0),
+                        child: ImageSlot(
+                          hasImage: true,
+                          imageFile: _stateManager.getImageAt(index),
+                          onTap: () {},
+                        ),
+                      );
+                    }),
+                    if (_stateManager.imageCount == 0)
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No images selected',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
                 ),
               ),
-      ],
-    );
-  }
 
-  List<Widget> _buildAspectRatioButtons(double screenWidth) {
-    final aspectRatios = ['1:1', '16:9', '4:3', 'Free'];
-    final spacing = _getCardSpacing(screenWidth);
+              const SizedBox(height: 24),
 
-    return aspectRatios.asMap().entries.map((entry) {
-      int index = entry.key;
-      String ratio = entry.value;
-
-      return Padding(
-        padding: EdgeInsets.only(
-          right: index < aspectRatios.length - 1 ? spacing : 0,
-        ),
-        child: AspectRatioButton(
-          ratio: ratio,
-          isSelected: selectedRatio == ratio,
-          onPressed: () {
-            setState(() {
-              selectedRatio = ratio;
-            });
-          },
-        ),
-      );
-    }).toList();
-  }
-
-  Widget _buildOutputSizeSection(double screenWidth) {
-    return Container(
-      width: double.infinity,
-      padding: _getCardPadding(screenWidth),
-      decoration: BoxDecoration(
-        color: Colors.grey[100],
-        borderRadius: BorderRadius.circular(_getBorderRadius(screenWidth)),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Text(
-        'Output: ${_getOutputDimensions()}',
-        style: TextStyle(
-          fontSize: _getFontSizeBody(screenWidth),
-          color: Colors.grey[700],
-          fontWeight: FontWeight.w500,
-        ),
-        textAlign: TextAlign.center,
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(double screenWidth, bool isLandscape) {
-    return screenWidth > 800 && !isLandscape
-        ? Row(
-            children: [
-              Expanded(
-                child: ActionButton(
-                  text: 'Reset',
-                  onPressed: _stateManager.hasImages ? _resetCrop : null,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: ActionButton(
-                  text: _isProcessing ? 'Processing...' : 'Apply Crop',
-                  isPrimary: true,
-                  onPressed: _stateManager.hasImages && !_isProcessing
-                      ? _applyCrop
-                      : null,
-                ),
-              ),
-            ],
-          )
-        : Column(
-            children: [
-              SizedBox(
+              // Crop preview info
+              Container(
                 width: double.infinity,
-                child: ActionButton(
-                  text: 'Reset',
-                  onPressed: _stateManager.hasImages ? _resetCrop : null,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.crop,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Crop Preview',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Selected ratio: $selectedRatio',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ActionButton(
-                  text: _isProcessing ? 'Processing...' : 'Apply Crop',
-                  isPrimary: true,
-                  onPressed: _stateManager.hasImages && !_isProcessing
-                      ? _applyCrop
-                      : null,
+
+              const SizedBox(height: 24),
+
+              // Aspect Ratio section
+              const Text(
+                'Aspect Ratio',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
                 ),
               ),
+
+              const SizedBox(height: 16),
+
+              // Aspect ratio buttons
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    AspectRatioButton(
+                      ratio: '1:1',
+                      isSelected: selectedRatio == '1:1',
+                      onPressed: () {
+                        setState(() {
+                          selectedRatio = '1:1';
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    AspectRatioButton(
+                      ratio: '16:9',
+                      isSelected: selectedRatio == '16:9',
+                      onPressed: () {
+                        setState(() {
+                          selectedRatio = '16:9';
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    AspectRatioButton(
+                      ratio: '4:3',
+                      isSelected: selectedRatio == '4:3',
+                      onPressed: () {
+                        setState(() {
+                          selectedRatio = '4:3';
+                        });
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    AspectRatioButton(
+                      ratio: 'Free',
+                      isSelected: selectedRatio == 'Free',
+                      onPressed: () {
+                        setState(() {
+                          selectedRatio = 'Free';
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Output size
+              Text(
+                'Output: ${_getOutputDimensions()}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.black54,
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Action buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ActionButton(
+                      text: 'Reset',
+                      onPressed: _stateManager.hasImages ? _resetCrop : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: ActionButton(
+                      text: _isProcessing ? 'Processing...' : 'Apply Crop',
+                      isPrimary: true,
+                      onPressed: _stateManager.hasImages && !_isProcessing
+                          ? _applyCrop
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
             ],
-          );
+          ),
+        ),
+      ),
+    );
   }
 }
