@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 class ActionButton extends StatelessWidget {
   final String text;
   final bool isPrimary;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const ActionButton({
     super.key,
     required this.text,
     this.isPrimary = false,
-    required this.onPressed,
+    this.onPressed,
   });
 
   @override
