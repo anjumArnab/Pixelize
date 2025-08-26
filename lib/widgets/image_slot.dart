@@ -23,8 +23,8 @@ class ImageSlot extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       child: Container(
-        width: 50,
-        height: 50,
+        width: 68, // increased by 35%
+        height: 68, // increased by 35%
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -42,8 +42,8 @@ class ImageSlot extends StatelessWidget {
             ? ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: SizedBox(
-                  width: 100,
-                  height: 100,
+                  width: 135, // also increased by 35%
+                  height: 135,
                   child: kIsWeb
                       ? Image.network(
                           imageFile!.path,
@@ -54,7 +54,7 @@ class ImageSlot extends StatelessWidget {
                               child: Icon(
                                 Icons.image,
                                 color: Colors.grey[400],
-                                size: 30,
+                                size: 40, // icon also a bit larger
                               ),
                             );
                           },
@@ -68,7 +68,7 @@ class ImageSlot extends StatelessWidget {
                               child: Icon(
                                 Icons.image,
                                 color: Colors.grey[400],
-                                size: 30,
+                                size: 40,
                               ),
                             );
                           },
@@ -83,7 +83,7 @@ class ImageSlot extends StatelessWidget {
                 child: Icon(
                   Icons.image,
                   color: Colors.grey[400],
-                  size: 30,
+                  size: 40, // increased
                 ),
               ),
       ),

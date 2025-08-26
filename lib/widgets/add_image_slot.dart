@@ -13,8 +13,8 @@ class AddImageSlot extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 50,
-        height: 50,
+        width: 68, // 35% bigger
+        height: 68, // 35% bigger
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -31,7 +31,7 @@ class AddImageSlot extends StatelessWidget {
         child: Icon(
           Icons.add,
           color: Colors.grey[400],
-          size: 24,
+          size: 30, // scaled up
         ),
       ),
     );
