@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../widgets/add_image_slot.dart';
 import '../widgets/action_button.dart';
 import '../widgets/image_slot.dart';
+import '../state/image_state_manager.dart';
 
 class CompressImagePage extends StatefulWidget {
   const CompressImagePage({super.key});
@@ -12,6 +12,23 @@ class CompressImagePage extends StatefulWidget {
 
 class _CompressImagePageState extends State<CompressImagePage> {
   double _qualityValue = 80.0;
+  final ImageStateManager _stateManager = ImageStateManager();
+
+  @override
+  void initState() {
+    super.initState();
+    _stateManager.addListener(_onImageStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _stateManager.removeListener(_onImageStateChanged);
+    super.dispose();
+  }
+
+  void _onImageStateChanged() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +58,9 @@ class _CompressImagePageState extends State<CompressImagePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Selected Images section
-              const Text(
-                'Selected Images (3)',
-                style: TextStyle(
+              Text(
+                'Selected Images (${_stateManager.imageCount})',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
@@ -52,18 +69,46 @@ class _CompressImagePageState extends State<CompressImagePage> {
 
               const SizedBox(height: 16),
 
-              // Image slots row
-              Row(
-                children: [
-                  const ImageSlot(hasImage: true),
-                  const SizedBox(width: 12),
-                  const ImageSlot(hasImage: true),
-                  const SizedBox(width: 12),
-                  const ImageSlot(hasImage: true),
-                  const SizedBox(width: 12),
-                  AddImageSlot(onTap: () {}),
-                  const Spacer(),
-                ],
+              // Image slots row - Dynamic based on selected images
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ...List.generate(_stateManager.imageCount, (index) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            right:
+                                index < _stateManager.imageCount - 1 ? 12 : 0),
+                        child: ImageSlot(
+                          hasImage: true,
+                          imageFile: _stateManager.getImageAt(index),
+                          onTap: () {
+                            // Optional: Show image preview or options
+                          },
+                        ),
+                      );
+                    }),
+                    if (_stateManager.imageCount == 0)
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No images selected',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 32),
@@ -161,18 +206,27 @@ class _CompressImagePageState extends State<CompressImagePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSizeRow('Original:', '2.4 MB'),
+                    _buildSizeRow('Original:',
+                        _stateManager.hasImages ? '2.4 MB' : 'No images'),
                     const SizedBox(height: 8),
-                    _buildSizeRow('Compressed:', '1.2 MB'),
+                    _buildSizeRow(
+                        'Compressed:',
+                        _stateManager.hasImages
+                            ? '${(2.4 * (_qualityValue / 100)).toStringAsFixed(1)} MB'
+                            : 'No images'),
                     const SizedBox(height: 8),
-                    _buildSizeRow('Saved:', '1.2 MB'),
+                    _buildSizeRow(
+                        'Saved:',
+                        _stateManager.hasImages
+                            ? '${(2.4 - (2.4 * (_qualityValue / 100))).toStringAsFixed(1)} MB'
+                            : 'No images'),
                   ],
                 ),
               ),
 
               const SizedBox(height: 32),
 
-              // Loseless/Lossy toggle
+              // Lossless/Lossy toggle
               Row(
                 children: [
                   Expanded(
@@ -239,9 +293,11 @@ class _CompressImagePageState extends State<CompressImagePage> {
                   Expanded(
                     child: ActionButton(
                       text: 'Preview',
-                      onPressed: () {
-                        // Handle preview action
-                      },
+                      onPressed: _stateManager.hasImages
+                          ? () {
+                              // Handle preview action
+                            }
+                          : null,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -249,9 +305,11 @@ class _CompressImagePageState extends State<CompressImagePage> {
                     child: ActionButton(
                       text: 'Process',
                       isPrimary: true,
-                      onPressed: () {
-                        // Handle process action
-                      },
+                      onPressed: _stateManager.hasImages
+                          ? () {
+                              // Handle process action
+                            }
+                          : null,
                     ),
                   ),
                 ],

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/add_image_slot.dart';
+import '../state/image_state_manager.dart';
 import '../widgets/action_button.dart';
 import '../widgets/image_slot.dart';
 
@@ -194,6 +194,24 @@ class CropImagePage extends StatefulWidget {
 class _CropImagePageState extends State<CropImagePage> {
   String selectedRatio = '16:9';
 
+  final ImageStateManager _stateManager = ImageStateManager();
+
+  @override
+  void initState() {
+    super.initState();
+    _stateManager.addListener(_onImageStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _stateManager.removeListener(_onImageStateChanged);
+    super.dispose();
+  }
+
+  void _onImageStateChanged() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -222,9 +240,9 @@ class _CropImagePageState extends State<CropImagePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Selected Image section
-              const Text(
-                'Selected Image',
-                style: TextStyle(
+              Text(
+                'Selected Images (${_stateManager.imageCount})',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   color: Colors.black87,
@@ -233,14 +251,46 @@ class _CropImagePageState extends State<CropImagePage> {
 
               const SizedBox(height: 16),
 
-              // Image slot
-              Row(
-                children: [
-                  const ImageSlot(hasImage: true),
-                  const SizedBox(width: 12),
-                  AddImageSlot(onTap: () {}),
-                  const Spacer(),
-                ],
+              // Image slots row - Dynamic based on selected images
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    ...List.generate(_stateManager.imageCount, (index) {
+                      return Padding(
+                        padding: EdgeInsets.only(
+                            right:
+                                index < _stateManager.imageCount - 1 ? 12 : 0),
+                        child: ImageSlot(
+                          hasImage: true,
+                          imageFile: _stateManager.getImageAt(index),
+                          onTap: () {
+                            // Optional: Show image preview or options
+                          },
+                        ),
+                      );
+                    }),
+                    if (_stateManager.imageCount == 0)
+                      Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.image_not_supported,
+                              size: 48,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No images selected',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 24),

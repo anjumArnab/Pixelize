@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../widgets/add_image_slot.dart';
+import '../state/image_state_manager.dart';
 import '../widgets/action_button.dart';
 import '../widgets/image_slot.dart';
 
@@ -15,6 +15,18 @@ class _ResizeImagePageState extends State<ResizeImagePage> {
   bool lockAspectRatio = true;
   String algorithm = "Lanczos";
 
+  final ImageStateManager _stateManager = ImageStateManager();
+
+  @override
+  void initState() {
+    super.initState();
+    _stateManager.addListener(_onImageStateChanged);
+  }
+
+  void _onImageStateChanged() {
+    setState(() {});
+  }
+
   final TextEditingController widthController =
       TextEditingController(text: "1920");
   final TextEditingController heightController =
@@ -22,6 +34,7 @@ class _ResizeImagePageState extends State<ResizeImagePage> {
 
   @override
   void dispose() {
+    _stateManager.removeListener(_onImageStateChanged);
     widthController.dispose();
     heightController.dispose();
     super.dispose();
@@ -57,7 +70,7 @@ class _ResizeImagePageState extends State<ResizeImagePage> {
               children: [
                 // Selected Images count
                 Text(
-                  'Selected Images (3)',
+                  'Selected Images (${_stateManager.imageCount})',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -65,17 +78,47 @@ class _ResizeImagePageState extends State<ResizeImagePage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Image slots row
-                Row(
-                  children: [
-                    const ImageSlot(hasImage: true),
-                    const SizedBox(width: 12),
-                    const ImageSlot(hasImage: true),
-                    const SizedBox(width: 12),
-                    const ImageSlot(hasImage: true),
-                    const SizedBox(width: 12),
-                    AddImageSlot(onTap: () {}),
-                  ],
+                // Image slots row - Dynamic based on selected images
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ...List.generate(_stateManager.imageCount, (index) {
+                        return Padding(
+                          padding: EdgeInsets.only(
+                              right: index < _stateManager.imageCount - 1
+                                  ? 12
+                                  : 0),
+                          child: ImageSlot(
+                            hasImage: true,
+                            imageFile: _stateManager.getImageAt(index),
+                            onTap: () {
+                              // Optional: Show image preview or options
+                            },
+                          ),
+                        );
+                      }),
+                      if (_stateManager.imageCount == 0)
+                        Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.image_not_supported,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'No images selected',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 32),
 

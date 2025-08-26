@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pixelize/state/image_state_manager.dart';
 import '../widgets/action_button.dart';
 import '../widgets/image_slot.dart';
 
@@ -15,6 +16,24 @@ class _ExportImagePageState extends State<ExportImagePage> {
   String afterSize = "After";
   String fileNamePattern = "compressed_[original]_[date]";
   String saveLocation = "PhotosPixelized";
+
+  final ImageStateManager _stateManager = ImageStateManager();
+
+  @override
+  void initState() {
+    super.initState();
+    _stateManager.addListener(_onImageStateChanged);
+  }
+
+  @override
+  void dispose() {
+    _stateManager.removeListener(_onImageStateChanged);
+    super.dispose();
+  }
+
+  void _onImageStateChanged() {
+    setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +65,7 @@ class _ExportImagePageState extends State<ExportImagePage> {
               children: [
                 // Processed Images count
                 Text(
-                  'Processed Images (3)',
+                  'Selected Images (${_stateManager.imageCount})',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -54,15 +73,47 @@ class _ExportImagePageState extends State<ExportImagePage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Image slots row
-                Row(
-                  children: const [
-                    ImageSlot(hasImage: true),
-                    SizedBox(width: 12),
-                    ImageSlot(hasImage: false),
-                    SizedBox(width: 12),
-                    ImageSlot(hasImage: false),
-                  ],
+                // Image slots row - Dynamic based on selected images
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      ...List.generate(_stateManager.imageCount, (index) {
+                        return Padding(
+                          padding: EdgeInsets.only(
+                              right: index < _stateManager.imageCount - 1
+                                  ? 12
+                                  : 0),
+                          child: ImageSlot(
+                            hasImage: true,
+                            imageFile: _stateManager.getImageAt(index),
+                            onTap: () {
+                              // Optional: Show image preview or options
+                            },
+                          ),
+                        );
+                      }),
+                      if (_stateManager.imageCount == 0)
+                        Center(
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.image_not_supported,
+                                size: 48,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'No images selected',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 24),
 
