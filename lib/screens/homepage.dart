@@ -210,27 +210,7 @@ class _HomepageState extends State<Homepage> {
                   if (_stateManager.hasImages)
                     TextButton(
                       onPressed: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: const Text('Clear All Images'),
-                            content: const Text(
-                                'Are you sure you want to remove all selected images?'),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('Cancel'),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  _stateManager.clearImages();
-                                },
-                                child: const Text('Clear All'),
-                              ),
-                            ],
-                          ),
-                        );
+                        _stateManager.clearImages();
                       },
                       child: Text(
                         'Clear All',

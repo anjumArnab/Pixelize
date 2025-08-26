@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:typed_data';
+import 'dart:io';
 import 'package:pixelize/state/image_state_manager.dart';
 import '../widgets/action_button.dart';
 import '../widgets/image_slot.dart';
+import '../services/image_service.dart';
 
 class ExportImagePage extends StatefulWidget {
   const ExportImagePage({super.key});
@@ -11,13 +17,19 @@ class ExportImagePage extends StatefulWidget {
 }
 
 class _ExportImagePageState extends State<ExportImagePage> {
-  String fileName = "image_001.jpg";
-  String beforeSize = "2.4 MB";
-  String afterSize = "After";
-  String fileNamePattern = "compressed_[original]_[date]";
+  String fileNamePattern = "[operation]_[original]_[date]";
   String saveLocation = "PhotosPixelized";
+  bool _isSaving = false;
+  bool _isSharing = false;
+
+  // Data from route arguments
+  List<Uint8List>? _processedImages;
+  List<Map<String, dynamic>>? _originalImageInfo;
+  String _operation = "processed";
+  String? _outputFormat;
 
   final ImageStateManager _stateManager = ImageStateManager();
+  final ImageService _imageService = ImageService();
 
   @override
   void initState() {
@@ -26,17 +38,209 @@ class _ExportImagePageState extends State<ExportImagePage> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _extractRouteArguments();
+  }
+
+  @override
   void dispose() {
     _stateManager.removeListener(_onImageStateChanged);
     super.dispose();
+  }
+
+  void _extractRouteArguments() {
+    final arguments =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+
+    if (arguments != null) {
+      setState(() {
+        // Handle different key names from different pages
+        _processedImages = arguments['processedImages'] as List<Uint8List>? ??
+            arguments['convertedImages'] as List<Uint8List>?;
+        _originalImageInfo =
+            arguments['originalImageInfo'] as List<Map<String, dynamic>>?;
+        _operation = arguments['operation'] as String? ?? "processed";
+        _outputFormat = arguments['outputFormat'] as String?;
+
+        // Update file name pattern based on operation
+        _updateFileNamePattern();
+      });
+    }
+  }
+
+  void _updateFileNamePattern() {
+    switch (_operation) {
+      case 'compressed':
+        fileNamePattern = "compressed_[original]_[date]";
+        break;
+      case 'converted':
+        fileNamePattern = "converted_[original]_[date]";
+        break;
+      case 'cropped':
+        fileNamePattern = "cropped_[original]_[date]";
+        break;
+      case 'resized':
+        fileNamePattern = "resized_[original]_[date]";
+        break;
+      default:
+        fileNamePattern = "[operation]_[original]_[date]";
+        break;
+    }
   }
 
   void _onImageStateChanged() {
     setState(() {});
   }
 
+  double _getTotalOriginalSize() {
+    if (_originalImageInfo == null) return 0.0;
+    return _originalImageInfo!
+        .fold(0.0, (sum, info) => sum + info['fileSizeMB']);
+  }
+
+  double _getTotalProcessedSize() {
+    if (_processedImages == null) return 0.0;
+    return _processedImages!
+        .fold(0.0, (sum, bytes) => sum + (bytes.length / (1024 * 1024)));
+  }
+
+  Future<void> _saveAllImages() async {
+    if (_processedImages == null || _processedImages!.isEmpty) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      List<String> savedPaths = [];
+
+      for (int i = 0; i < _processedImages!.length; i++) {
+        final originalImage = _stateManager.getImageAt(i);
+        if (originalImage == null) continue;
+
+        final fileName = _imageService.generateFileName(
+          originalName: originalImage.name,
+          operation: _operation,
+          customPattern: fileNamePattern,
+        );
+
+        final savedPath = await _imageService.saveImageToStorage(
+          _processedImages![i],
+          fileName: fileName,
+          folderName: saveLocation,
+        );
+
+        savedPaths.add(savedPath);
+      }
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Successfully saved ${savedPaths.length} images'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isSaving = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving images: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareImages() async {
+    if (_processedImages == null || _processedImages!.isEmpty) return;
+
+    setState(() {
+      _isSharing = true;
+    });
+
+    try {
+      // Save images to temporary files for sharing
+      List<XFile> tempFiles = [];
+
+      for (int i = 0; i < _processedImages!.length; i++) {
+        final originalImage = _stateManager.getImageAt(i);
+        if (originalImage == null) continue;
+
+        final fileName = _imageService.generateFileName(
+          originalName: originalImage.name,
+          operation: _operation,
+        );
+
+        // Create temporary file
+        final tempDir = await getTemporaryDirectory();
+        final tempFile = File('${tempDir.path}/$fileName');
+        await tempFile.writeAsBytes(_processedImages![i]);
+
+        tempFiles.add(XFile(tempFile.path));
+      }
+
+      // Share files
+      await Share.shareXFiles(
+        tempFiles,
+        text: '${_operation.capitalize()} images from Pixelize',
+      );
+
+      setState(() {
+        _isSharing = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isSharing = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sharing images: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _getOperationDisplayName() {
+    switch (_operation) {
+      case 'compressed':
+        return 'Compressed';
+      case 'converted':
+        return 'Converted';
+      case 'cropped':
+        return 'Cropped';
+      case 'resized':
+        return 'Resized';
+      default:
+        return 'Processed';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final originalSize = _getTotalOriginalSize();
+    final processedSize = _getTotalProcessedSize();
+    final savedSize = originalSize - processedSize;
+    final reductionPercentage =
+        originalSize > 0 ? ((savedSize / originalSize) * 100).round() : 0;
+    final hasProcessedImages =
+        _processedImages != null && _processedImages!.isNotEmpty;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -65,7 +269,7 @@ class _ExportImagePageState extends State<ExportImagePage> {
               children: [
                 // Processed Images count
                 Text(
-                  'Selected Images (${_stateManager.imageCount})',
+                  '${_getOperationDisplayName()} Images (${_processedImages?.length ?? 0})',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -104,7 +308,7 @@ class _ExportImagePageState extends State<ExportImagePage> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'No images selected',
+                                'No images processed',
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                 ),
@@ -117,7 +321,7 @@ class _ExportImagePageState extends State<ExportImagePage> {
                 ),
                 const SizedBox(height: 24),
 
-                // Image preview card
+                // Processing summary card
                 Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -136,7 +340,7 @@ class _ExportImagePageState extends State<ExportImagePage> {
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
                       children: [
-                        // File name
+                        // File name preview
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -145,7 +349,15 @@ class _ExportImagePageState extends State<ExportImagePage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            fileName,
+                            _stateManager.hasImages
+                                ? _imageService.generateFileName(
+                                    originalName:
+                                        _stateManager.getImageAt(0)?.name ??
+                                            'image.jpg',
+                                    operation: _operation,
+                                    customPattern: fileNamePattern,
+                                  )
+                                : 'No images',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 14,
@@ -177,7 +389,7 @@ class _ExportImagePageState extends State<ExportImagePage> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      beforeSize,
+                                      '${originalSize.toStringAsFixed(1)} MB',
                                       style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -193,7 +405,7 @@ class _ExportImagePageState extends State<ExportImagePage> {
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[100],
+                                  color: Colors.green[50],
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Column(
@@ -207,11 +419,11 @@ class _ExportImagePageState extends State<ExportImagePage> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      afterSize,
-                                      style: const TextStyle(
+                                      '${processedSize.toStringAsFixed(1)} MB',
+                                      style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
+                                        color: Colors.green[700],
                                       ),
                                     ),
                                   ],
@@ -224,12 +436,29 @@ class _ExportImagePageState extends State<ExportImagePage> {
 
                         // Size reduction percentage
                         Text(
-                          '50% size reduction',
+                          savedSize >= 0
+                              ? '$reductionPercentage% size reduction'
+                              : '${reductionPercentage.abs()}% size increase',
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[600],
+                            color: savedSize >= 0
+                                ? Colors.green[600]
+                                : Colors.orange[600],
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
+
+                        // Output format info if available
+                        if (_outputFormat != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Format: $_outputFormat',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -257,20 +486,34 @@ class _ExportImagePageState extends State<ExportImagePage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Text(
-                    fileNamePattern,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
+                GestureDetector(
+                  onTap: () {
+                    // Show pattern selection dialog
+                    _showPatternDialog();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            fileNamePattern,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                        Icon(Icons.edit, size: 16, color: Colors.grey[600]),
+                      ],
                     ),
                   ),
                 ),
@@ -286,42 +529,40 @@ class _ExportImagePageState extends State<ExportImagePage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          child: Text(
-                            saveLocation,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.black87,
+                GestureDetector(
+                  onTap: () {
+                    // Show location selection dialog
+                    _showLocationDialog();
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            child: Text(
+                              saveLocation,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                      Container(
-                        margin: const EdgeInsets.all(8),
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.yellow[100],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Icon(
+                        Icon(
                           Icons.folder,
                           size: 16,
-                          color: Colors.orange[700],
-                        ),
-                      ),
-                    ],
+                          color: Colors.grey[600],
+                        )
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -338,9 +579,9 @@ class _ExportImagePageState extends State<ExportImagePage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Total: 3 images processed',
-                        style: TextStyle(
+                      Text(
+                        'Total: ${_processedImages?.length ?? 0} images ${_operation}',
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: Colors.black87,
@@ -348,7 +589,7 @@ class _ExportImagePageState extends State<ExportImagePage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Space saved: 3.6 MB → 1.8 MB',
+                        'Space saved: ${originalSize.toStringAsFixed(1)} MB → ${processedSize.toStringAsFixed(1)} MB',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -364,20 +605,22 @@ class _ExportImagePageState extends State<ExportImagePage> {
                   children: [
                     Expanded(
                       child: ActionButton(
-                        text: 'Share',
-                        onPressed: () {
-                          // Handle share
-                        },
+                        text: _isSharing ? 'Sharing...' : 'Share',
+                        onPressed:
+                            hasProcessedImages && !_isSharing && !_isSaving
+                                ? _shareImages
+                                : null,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ActionButton(
-                        text: 'Save All',
+                        text: _isSaving ? 'Saving...' : 'Save All',
                         isPrimary: true,
-                        onPressed: () {
-                          // Handle save all
-                        },
+                        onPressed:
+                            hasProcessedImages && !_isSaving && !_isSharing
+                                ? _saveAllImages
+                                : null,
                       ),
                     ),
                   ],
@@ -389,5 +632,105 @@ class _ExportImagePageState extends State<ExportImagePage> {
         ),
       ),
     );
+  }
+
+  void _showPatternDialog() {
+    final patterns = [
+      '[operation]_[original]_[date]',
+      'compressed_[original]_[date]',
+      '[original]_[operation]',
+      'pixelize_[original]',
+      '[date]_[original]',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('File Name Pattern'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Choose a naming pattern for your ${_operation} images:'),
+            const SizedBox(height: 16),
+            ...patterns.map((pattern) => _buildPatternOption(pattern)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPatternOption(String pattern) {
+    return ListTile(
+      title: Text(pattern),
+      leading: Radio<String>(
+        value: pattern,
+        groupValue: fileNamePattern,
+        onChanged: (value) {
+          setState(() {
+            fileNamePattern = value!;
+          });
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+
+  void _showLocationDialog() {
+    final locations = [
+      'PhotosPixelized',
+      'CompressedImages',
+      'ProcessedImages',
+      'Downloads',
+      'Pictures',
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Save Location'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Choose where to save your ${_operation} images:'),
+            const SizedBox(height: 16),
+            ...locations.map((location) => _buildLocationOption(location)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationOption(String location) {
+    return ListTile(
+      title: Text(location),
+      leading: Radio<String>(
+        value: location,
+        groupValue: saveLocation,
+        onChanged: (value) {
+          setState(() {
+            saveLocation = value!;
+          });
+          Navigator.pop(context);
+        },
+      ),
+    );
+  }
+}
+
+extension StringExtension on String {
+  String capitalize() {
+    return "${this[0].toUpperCase()}${substring(1).toLowerCase()}";
   }
 }

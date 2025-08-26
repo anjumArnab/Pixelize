@@ -1,188 +1,10 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../state/image_state_manager.dart';
+import '../widgets/aspect_ratio_button.dart';
 import '../widgets/action_button.dart';
 import '../widgets/image_slot.dart';
-
-class AspectRatioButton extends StatelessWidget {
-  final String ratio;
-  final bool isSelected;
-  final VoidCallback onPressed;
-
-  const AspectRatioButton({
-    super.key,
-    required this.ratio,
-    required this.isSelected,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.black87 : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: Text(
-          ratio,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: isSelected ? Colors.white : Colors.black87,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class CropPreviewWidget extends StatelessWidget {
-  const CropPreviewWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 200,
-      margin: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Stack(
-        children: [
-          // Background image area
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          // Crop overlay
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Colors.black87,
-                    width: 2,
-                    style: BorderStyle.solid,
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    // Corner handles
-                    _buildCornerHandle(Alignment.topLeft),
-                    _buildCornerHandle(Alignment.topRight),
-                    _buildCornerHandle(Alignment.bottomLeft),
-                    _buildCornerHandle(Alignment.bottomRight),
-                    // Dotted lines
-                    Positioned(
-                      top: 0,
-                      left: 20,
-                      right: 20,
-                      child: _buildDottedLine(isHorizontal: true),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      left: 20,
-                      right: 20,
-                      child: _buildDottedLine(isHorizontal: true),
-                    ),
-                    Positioned(
-                      top: 20,
-                      bottom: 20,
-                      left: 0,
-                      child: _buildDottedLine(isHorizontal: false),
-                    ),
-                    Positioned(
-                      top: 20,
-                      bottom: 20,
-                      right: 0,
-                      child: _buildDottedLine(isHorizontal: false),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCornerHandle(Alignment alignment) {
-    return Align(
-      alignment: alignment,
-      child: Container(
-        width: 12,
-        height: 12,
-        decoration: BoxDecoration(
-          color: Colors.black87,
-          border: Border.all(color: Colors.white, width: 1),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDottedLine({required bool isHorizontal}) {
-    return CustomPaint(
-      size: Size(
-        isHorizontal ? double.infinity : 1,
-        isHorizontal ? 1 : double.infinity,
-      ),
-      painter: DottedLinePainter(isHorizontal: isHorizontal),
-    );
-  }
-}
-
-class DottedLinePainter extends CustomPainter {
-  final bool isHorizontal;
-
-  DottedLinePainter({required this.isHorizontal});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.black87
-      ..strokeWidth = 1;
-
-    const dashWidth = 3.0;
-    const dashSpace = 3.0;
-
-    if (isHorizontal) {
-      double startX = 0;
-      while (startX < size.width) {
-        canvas.drawLine(
-          Offset(startX, 0),
-          Offset(startX + dashWidth, 0),
-          paint,
-        );
-        startX += dashWidth + dashSpace;
-      }
-    } else {
-      double startY = 0;
-      while (startY < size.height) {
-        canvas.drawLine(
-          Offset(0, startY),
-          Offset(0, startY + dashWidth),
-          paint,
-        );
-        startY += dashWidth + dashSpace;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
+import '../services/image_service.dart';
 
 class CropImagePage extends StatefulWidget {
   const CropImagePage({super.key});
@@ -193,13 +15,18 @@ class CropImagePage extends StatefulWidget {
 
 class _CropImagePageState extends State<CropImagePage> {
   String selectedRatio = '16:9';
+  bool _isProcessing = false;
+  List<Uint8List>? _croppedImages;
+  List<Map<String, dynamic>>? _originalImageInfo;
 
   final ImageStateManager _stateManager = ImageStateManager();
+  final ImageService _imageService = ImageService();
 
   @override
   void initState() {
     super.initState();
     _stateManager.addListener(_onImageStateChanged);
+    _loadImageInfo();
   }
 
   @override
@@ -210,6 +37,155 @@ class _CropImagePageState extends State<CropImagePage> {
 
   void _onImageStateChanged() {
     setState(() {});
+    _loadImageInfo();
+  }
+
+  Future<void> _loadImageInfo() async {
+    if (!_stateManager.hasImages) return;
+
+    try {
+      List<Map<String, dynamic>> infoList = [];
+      for (var image in _stateManager.selectedImages) {
+        var info = await _imageService.getImageInfo(image);
+        infoList.add(info);
+      }
+      setState(() {
+        _originalImageInfo = infoList;
+      });
+    } catch (e) {
+      debugPrint('Error loading image info: $e');
+    }
+  }
+
+  Future<void> _applyCrop() async {
+    if (!_stateManager.hasImages) return;
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      List<Uint8List> croppedImages = [];
+
+      for (int i = 0; i < _stateManager.imageCount; i++) {
+        final imageFile = _stateManager.getImageAt(i);
+        if (imageFile == null) continue;
+
+        // Get image info to calculate crop dimensions
+        final imageInfo = await _imageService.getImageInfo(imageFile);
+        final imageWidth = imageInfo['width'] as int;
+        final imageHeight = imageInfo['height'] as int;
+
+        // Calculate crop dimensions based on aspect ratio
+        int cropWidth, cropHeight;
+        int cropX = 0, cropY = 0;
+
+        switch (selectedRatio) {
+          case '1:1':
+            final minDimension =
+                imageWidth < imageHeight ? imageWidth : imageHeight;
+            cropWidth = minDimension;
+            cropHeight = minDimension;
+            cropX = (imageWidth - cropWidth) ~/ 2;
+            cropY = (imageHeight - cropHeight) ~/ 2;
+            break;
+          case '16:9':
+            if (imageWidth / imageHeight > 16 / 9) {
+              cropHeight = imageHeight;
+              cropWidth = (cropHeight * 16 / 9).round();
+              cropX = (imageWidth - cropWidth) ~/ 2;
+            } else {
+              cropWidth = imageWidth;
+              cropHeight = (cropWidth * 9 / 16).round();
+              cropY = (imageHeight - cropHeight) ~/ 2;
+            }
+            break;
+          case '4:3':
+            if (imageWidth / imageHeight > 4 / 3) {
+              cropHeight = imageHeight;
+              cropWidth = (cropHeight * 4 / 3).round();
+              cropX = (imageWidth - cropWidth) ~/ 2;
+            } else {
+              cropWidth = imageWidth;
+              cropHeight = (cropWidth * 3 / 4).round();
+              cropY = (imageHeight - cropHeight) ~/ 2;
+            }
+            break;
+          case 'Free':
+          default:
+            cropWidth = imageWidth;
+            cropHeight = imageHeight;
+            break;
+        }
+
+        // Perform the crop
+        final croppedBytes = await _imageService.cropImage(
+          imageFile,
+          x: cropX,
+          y: cropY,
+          width: cropWidth,
+          height: cropHeight,
+          aspectRatio: selectedRatio.toLowerCase(),
+        );
+
+        croppedImages.add(croppedBytes);
+      }
+
+      setState(() {
+        _croppedImages = croppedImages;
+        _isProcessing = false;
+      });
+
+      // Navigate to export page with cropped images - Fixed data passing
+      if (mounted) {
+        Navigator.pushNamed(
+          context,
+          '/export',
+          arguments: {
+            'processedImages': _croppedImages, // Changed from inconsistent key
+            'originalImageInfo': _originalImageInfo,
+            'operation': 'cropped', // Added operation type
+          },
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _isProcessing = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error cropping images: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _getOutputDimensions() {
+    if (!_stateManager.hasImages) return '0×0 px';
+
+    switch (selectedRatio) {
+      case '1:1':
+        return '1080×1080 px';
+      case '16:9':
+        return '1920×1080 px';
+      case '4:3':
+        return '1440×1080 px';
+      case 'Free':
+        return 'Original size';
+      default:
+        return '1920×1080 px';
+    }
+  }
+
+  void _resetCrop() {
+    setState(() {
+      selectedRatio = '16:9';
+      _croppedImages = null;
+    });
   }
 
   @override
@@ -251,7 +227,7 @@ class _CropImagePageState extends State<CropImagePage> {
 
               const SizedBox(height: 16),
 
-              // Image slots row - Dynamic based on selected images
+              // Image slots row
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -264,9 +240,7 @@ class _CropImagePageState extends State<CropImagePage> {
                         child: ImageSlot(
                           hasImage: true,
                           imageFile: _stateManager.getImageAt(index),
-                          onTap: () {
-                            // Optional: Show image preview or options
-                          },
+                          onTap: () {},
                         ),
                       );
                     }),
@@ -295,18 +269,42 @@ class _CropImagePageState extends State<CropImagePage> {
 
               const SizedBox(height: 24),
 
-              // Image Preview section
-              const Text(
-                'Image Preview',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+              // Crop preview info
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.crop,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Crop Preview',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Selected ratio: $selectedRatio',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-
-              // Crop preview widget
-              const CropPreviewWidget(),
 
               const SizedBox(height: 24),
 
@@ -373,9 +371,9 @@ class _CropImagePageState extends State<CropImagePage> {
               const SizedBox(height: 24),
 
               // Output size
-              const Text(
-                'Output: 1920×1080 px',
-                style: TextStyle(
+              Text(
+                'Output: ${_getOutputDimensions()}',
+                style: const TextStyle(
                   fontSize: 14,
                   color: Colors.black54,
                 ),
@@ -389,27 +387,22 @@ class _CropImagePageState extends State<CropImagePage> {
                   Expanded(
                     child: ActionButton(
                       text: 'Reset',
-                      onPressed: () {
-                        setState(() {
-                          selectedRatio = '16:9';
-                        });
-                      },
+                      onPressed: _stateManager.hasImages ? _resetCrop : null,
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: ActionButton(
-                      text: 'Apply',
+                      text: _isProcessing ? 'Processing...' : 'Apply Crop',
                       isPrimary: true,
-                      onPressed: () {
-                        // Handle apply action
-                      },
+                      onPressed: _stateManager.hasImages && !_isProcessing
+                          ? _applyCrop
+                          : null,
                     ),
                   ),
                 ],
               ),
 
-              // Extra padding to ensure no overflow
               const SizedBox(height: 20),
             ],
           ),
