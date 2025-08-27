@@ -224,32 +224,9 @@ class _HomepageState extends State<Homepage> {
               ),
 
               const SizedBox(height: 16),
-
-              /*  // Selected images row
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    // Display selected images
-                    ...List.generate(_stateManager.imageCount, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: ImageSlot(
-                          hasImage: true,
-                          imageFile: _stateManager.getImageAt(index),
-                          onLongPress: () => _removeImage(index),
-                          onTap: () => _pickImage,
-                        ),
-                      );
-                    }),
-                    // Add image slot
-                    AddImageSlot(onTap: _pickImage),
-                  ],
-                ),
-              ),*/
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: 5,
+                runSpacing: 5,
                 children: [
                   // Display selected images
                   ...List.generate(_stateManager.imageCount, (index) {

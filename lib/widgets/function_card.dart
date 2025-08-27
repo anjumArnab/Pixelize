@@ -22,8 +22,8 @@ class FunctionCard extends StatelessWidget {
     // Adjust sizes based on width
     double padding = screenWidth < 400 ? 12 : 16;
     double iconSize = screenWidth < 400 ? 18 : 20;
-    double fontSizeTitle = screenWidth < 400 ? 14 : 16;
-    double fontSizeSubtitle = screenWidth < 400 ? 11 : 12;
+    double fontSizeTitle = screenWidth < 400 ? 13 : 15;
+    double fontSizeSubtitle = screenWidth < 400 ? 9 : 11;
 
     return GestureDetector(
       onTap: onTap,

@@ -1,8 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
-import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
@@ -551,24 +548,53 @@ class ImageService {
     }
   }
 
-  /// Generate filename with pattern
+  /// Maps format names to file extensions
+  String _getExtensionForFormat(String format) {
+    switch (format.toUpperCase()) {
+      case 'JPEG':
+      case 'JPG':
+        return '.jpg';
+      case 'PNG':
+        return '.png';
+      case 'WEBP':
+        return '.webp';
+      case 'BMP':
+        return '.bmp';
+      case 'GIF':
+        return '.gif';
+      case 'TIFF':
+        return '.tiff';
+      case 'HEIC':
+        return '.heic';
+      default:
+        return '.png'; // Default fallback
+    }
+  }
+
+  /// Generate filename with pattern - FIXED VERSION
   String generateFileName({
     required String originalName,
     required String operation,
+    String? targetFormat, // NEW: Accept target format
     String? customPattern,
   }) {
     String baseName = path.basenameWithoutExtension(originalName);
-    String extension = path.extension(originalName);
+
+    // Use target format extension if provided, otherwise keep original
+    String extension = targetFormat != null
+        ? _getExtensionForFormat(targetFormat)
+        : path.extension(originalName);
+
     DateTime now = DateTime.now();
     String timestamp =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
 
     if (customPattern != null) {
-      return customPattern
-              .replaceAll('[original]', baseName)
-              .replaceAll('[operation]', operation)
-              .replaceAll('[date]', timestamp) +
-          extension;
+      String fileName = customPattern
+          .replaceAll('[original]', baseName)
+          .replaceAll('[operation]', operation)
+          .replaceAll('[date]', timestamp);
+      return fileName + extension;
     }
 
     return '${operation}_${baseName}_$timestamp$extension';
