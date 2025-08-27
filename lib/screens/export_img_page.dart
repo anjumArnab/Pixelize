@@ -531,75 +531,36 @@ class _ExportImagePageState extends State<ExportImagePage> {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
-                    // Show location selection dialog
+                    // Show location dialog
                     _showLocationDialog();
                   },
                   child: Container(
                     width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.grey[200]!),
                     ),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
-                            child: Text(
-                              saveLocation,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                              ),
+                          child: Text(
+                            saveLocation,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black87,
                             ),
                           ),
                         ),
-                        Icon(
-                          Icons.folder,
-                          size: 16,
-                          color: Colors.grey[600],
-                        )
+                        Icon(Icons.folder, size: 16, color: Colors.grey[600]),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-
-                // Processing summary
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Total: ${_processedImages?.length ?? 0} images ${_operation}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Space saved: ${originalSize.toStringAsFixed(1)} MB → ${processedSize.toStringAsFixed(1)} MB',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 32),
-
+                const SizedBox(height: 20),
                 // Action buttons
                 Row(
                   children: [
