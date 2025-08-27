@@ -416,7 +416,7 @@ class _CompressImagePageState extends State<CompressImagePage> {
                 children: [
                   Expanded(
                     child: ActionButton(
-                      text: 'Preview',
+                      text: 'Cancel',
                       onPressed: Navigator.canPop(context)
                           ? () => Navigator.pop(context)
                           : null,

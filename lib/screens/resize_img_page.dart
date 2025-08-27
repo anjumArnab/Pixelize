@@ -676,15 +676,9 @@ class _ResizeImagePageState extends State<ResizeImagePage> {
                   children: [
                     Expanded(
                       child: ActionButton(
-                        text: 'Preview',
-                        onPressed: _stateManager.hasImages && !_isProcessing
-                            ? () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                      content: Text(
-                                          'Preview functionality coming soon')),
-                                );
-                              }
+                        text: 'Cancel',
+                        onPressed: Navigator.canPop(context)
+                            ? () => Navigator.pop(context)
                             : null,
                       ),
                     ),
